@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#111111">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="STEP SEQUENCER"
+            android:textSize="26sp"
+            android:textColor="#F9F6EE"
+            android:layout_marginBottom="20dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BPM:"
+                android:textColor="#F9F6EE"
+                android:textSize="18sp"
+                android:layout_marginEnd="10dp" />
+
+            <EditText
+                android:id="@+id/bpmInput"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:text="120"
+                android:textColor="#F9F6EE"
+                android:backgroundTint="#F9F6EE" />
+        </LinearLayout>
+
+        <!-- ROW 1 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="15dp">
+
+            <Spinner
+                android:id="@+id/kickSpinner"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp" />
+
+            <LinearLayout
+                android:id="@+id/kickRow"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal" />
+            <Button
+                android:id="@+id/kickToggle"
+                android:layout_width="60dp"
+                android:layout_height="40dp"
+                android:text="8/16" />
+
+        </LinearLayout>
+
+        <!-- ROW 2 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="15dp">
+
+            <Spinner
+                android:id="@+id/snareSpinner"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp" />
+
+            <LinearLayout
+                android:id="@+id/snareRow"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal" />
+            <Button
+                android:id="@+id/snareToggle"
+                android:layout_width="60dp"
+                android:layout_height="40dp"
+                android:text="8/16" />
+
+        </LinearLayout>
+
+        <!-- ROW 3 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="30dp">
+
+            <Spinner
+                android:id="@+id/hatSpinner"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp" />
+
+            <LinearLayout
+                android:id="@+id/hatRow"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal" />
+            <Button
+                android:id="@+id/hatToggle"
+                android:layout_width="60dp"
+                android:layout_height="40dp"
+                android:text="8/16" />
+
+        </LinearLayout>
+
+        <!-- ROW 4 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="30dp">
+
+            <Spinner
+                android:id="@+id/openHatSpinner"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp" />
+
+            <LinearLayout
+                android:id="@+id/openHatRow"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal" />
+            <Button
+                android:id="@+id/openHatToggle"
+                android:layout_width="60dp"
+                android:layout_height="40dp"
+                android:text="8/16" />
+
+        </LinearLayout>
+
+        <!-- ROW 5 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="30dp">
+
+            <Spinner
+                android:id="@+id/clapSpinner"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp" />
+
+            <LinearLayout
+                android:id="@+id/clapRow"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal" />
+            <Button
+                android:id="@+id/clapToggle"
+                android:layout_width="60dp"
+                android:layout_height="40dp"
+                android:text="8/16" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/playButton"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="PLAY" />
+
+    </LinearLayout>
+
+</ScrollView>

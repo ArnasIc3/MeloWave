@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/mainScreen"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F0F0F">
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="MELOWAVE"
+        android:textSize="42sp"
+        android:textColor="#FFFFFF"
+        android:fontFamily="sans-serif-medium"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/createButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="40dp" />
+
+    <Button
+        android:id="@+id/createButton"
+        android:layout_width="260dp"
+        android:layout_height="60dp"
+        android:text="Create Beat"
+        android:textSize="18sp"
+        android:backgroundTint="#3A7AFE"
+        android:textColor="#FFFFFF"
+        app:layout_constraintTop_toBottomOf="@id/title"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <Button
+        android:id="@+id/loadButton"
+        android:layout_width="260dp"
+        android:layout_height="60dp"
+        android:text="Load Project"
+        android:textSize="18sp"
+        android:backgroundTint="#303030"
+        android:textColor="#FFFFFF"
+        app:layout_constraintTop_toBottomOf="@id/createButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="20dp" />
+
+    <Button
+        android:id="@+id/settingsButton"
+        android:layout_width="260dp"
+        android:layout_height="60dp"
+        android:text="Settings"
+        android:textSize="18sp"
+        android:backgroundTint="#303030"
+        android:textColor="#FFFFFF"
+        app:layout_constraintTop_toBottomOf="@id/loadButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="20dp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
