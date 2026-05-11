@@ -3,6 +3,7 @@ package com.example.melow
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
+import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
@@ -11,10 +12,48 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val createButton = findViewById<Button>(R.id.createButton)
+        val logoSection = findViewById<LinearLayout>(R.id.logoSection)
+        val buttonSection = findViewById<LinearLayout>(R.id.buttonSection)
 
-        createButton.setOnClickListener {
-            startActivity(Intent(this, SecondActivity::class.java))
+        logoSection.alpha = 0f
+        logoSection.translationY = -40f
+        logoSection.animate()
+            .alpha(1f).translationY(0f)
+            .setDuration(500).setStartDelay(100).start()
+
+        buttonSection.alpha = 0f
+        buttonSection.translationY = 60f
+        buttonSection.animate()
+            .alpha(1f).translationY(0f)
+            .setDuration(500).setStartDelay(280).start()
+
+        findViewById<Button>(R.id.createButton).setOnClickListener {
+            animateButton(it as Button) {
+                startActivity(Intent(this, SecondActivity::class.java))
+                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+            }
         }
+
+        findViewById<Button>(R.id.loadButton).setOnClickListener {
+            animateButton(it as Button) {
+                startActivity(Intent(this, ProjectsActivity::class.java))
+                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+            }
+        }
+
+        findViewById<Button>(R.id.soundLibraryButton).setOnClickListener {
+            animateButton(it as Button) {
+                startActivity(Intent(this, SoundLibraryActivity::class.java))
+                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+            }
+        }
+    }
+
+    private fun animateButton(btn: Button, action: () -> Unit) {
+        btn.animate().scaleX(0.93f).scaleY(0.93f).setDuration(80)
+            .withEndAction {
+                btn.animate().scaleX(1f).scaleY(1f).setDuration(80)
+                    .withEndAction(action).start()
+            }.start()
     }
 }

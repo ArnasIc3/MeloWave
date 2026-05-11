@@ -5,22 +5,28 @@
     <application
         android:allowBackup="true"
         android:label="Melowave"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-
-        <activity
-            android:name=".SecondActivity"
-            android:exported="false" />
+        android:theme="@style/Theme.AppCompat.NoActionBar">
 
         <activity
             android:name=".MainActivity"
             android:exported="true">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
+
+        <activity
+            android:name=".SecondActivity"
+            android:exported="false"/>
+
+        <activity
+            android:name=".ProjectsActivity"
+            android:exported="false"/>
+
+        <activity
+            android:name=".SoundLibraryActivity"
+            android:exported="false"/>
 
     </application>
 

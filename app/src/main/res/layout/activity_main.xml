@@ -5,58 +5,85 @@
     android:id="@+id/mainScreen"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F0F0F">
+    android:background="@color/bg_primary">
 
-    <TextView
-        android:id="@+id/title"
+    <LinearLayout
+        android:id="@+id/logoSection"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="MELOWAVE"
-        android:textSize="42sp"
-        android:textColor="#FFFFFF"
-        android:fontFamily="sans-serif-medium"
+        android:orientation="vertical"
+        android:gravity="center"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/createButton"
+        app:layout_constraintBottom_toTopOf="@+id/buttonSection"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginBottom="40dp" />
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <Button
-        android:id="@+id/createButton"
-        android:layout_width="260dp"
-        android:layout_height="60dp"
-        android:text="Create Beat"
-        android:textSize="18sp"
-        android:backgroundTint="#3A7AFE"
-        android:textColor="#FFFFFF"
-        app:layout_constraintTop_toBottomOf="@id/title"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MELOWAVE"
+            android:textSize="36sp"
+            android:textColor="@color/text_primary"
+            android:fontFamily="sans-serif-black"
+            android:letterSpacing="0.2"
+            android:layout_gravity="center"
+            android:layout_marginTop="20dp"/>
 
-    <Button
-        android:id="@+id/loadButton"
-        android:layout_width="260dp"
-        android:layout_height="60dp"
-        android:text="Load Project"
-        android:textSize="18sp"
-        android:backgroundTint="#303030"
-        android:textColor="#FFFFFF"
-        app:layout_constraintTop_toBottomOf="@id/createButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="20dp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Make your beats"
+            android:textSize="15sp"
+            android:textColor="@color/text_secondary"
+            android:layout_gravity="center"
+            android:layout_marginTop="10dp"/>
 
-    <Button
-        android:id="@+id/settingsButton"
-        android:layout_width="260dp"
-        android:layout_height="60dp"
-        android:text="Settings"
-        android:textSize="18sp"
-        android:backgroundTint="#303030"
-        android:textColor="#FFFFFF"
-        app:layout_constraintTop_toBottomOf="@id/loadButton"
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/buttonSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:layout_marginBottom="64dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="20dp" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/createButton"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:text="Create New Beat"
+            android:textSize="17sp"
+            android:textColor="@color/text_on_primary"
+            android:background="@drawable/bg_btn_primary"
+            android:stateListAnimator="@null"/>
+
+        <Button
+            android:id="@+id/loadButton"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:text="My Projects"
+            android:textSize="17sp"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/bg_btn_secondary"
+            android:stateListAnimator="@null"
+            android:layout_marginTop="16dp"/>
+
+        <Button
+            android:id="@+id/soundLibraryButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Sound Library"
+            android:textSize="15sp"
+            android:textColor="@color/text_secondary"
+            android:background="@android:color/transparent"
+            android:layout_marginTop="4dp"/>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

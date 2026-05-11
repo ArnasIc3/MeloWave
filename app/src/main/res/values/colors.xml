@@ -2,4 +2,28 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Backgrounds (derived from #484738 dark olive) -->
+    <color name="bg_primary">#1e1d17</color>
+    <color name="bg_surface">#2a2920</color>
+    <color name="bg_card">#484738</color>
+    <color name="bg_card_elevated">#575646</color>
+
+    <!-- Accent palette -->
+    <color name="accent_purple">#e6ee42</color>
+    <color name="accent_cyan">#00ecf1</color>
+    <color name="accent_amber">#00b2b9</color>
+    <color name="accent_green">#adac9a</color>
+
+    <!-- Step sequencer states -->
+    <color name="step_inactive">#333228</color>
+
+    <!-- Text -->
+    <color name="text_primary">#f0efea</color>
+    <color name="text_secondary">#adac9a</color>
+    <color name="text_muted">#6b6a5c</color>
+    <color name="text_on_primary">#1e1d17</color>
+
+    <color name="button_danger">#ff5555</color>
+    <color name="divider">#333228</color>
 </resources>
