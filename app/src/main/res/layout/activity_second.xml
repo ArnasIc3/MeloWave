@@ -25,7 +25,7 @@
             android:textColor="@color/text_primary"
             android:background="@android:color/transparent"
             android:stateListAnimator="@null"
-            android:padding="0dp" />
+            android:padding="0dp"/>
 
         <TextView
             android:layout_width="0dp"
@@ -36,7 +36,7 @@
             android:textColor="@color/text_primary"
             android:fontFamily="sans-serif-black"
             android:letterSpacing="0.15"
-            android:gravity="center" />
+            android:gravity="center"/>
 
         <Button
             android:id="@+id/saveButton"
@@ -47,7 +47,7 @@
             android:textColor="@color/text_primary"
             android:background="@drawable/bg_btn_secondary"
             android:stateListAnimator="@null"
-            android:padding="0dp" />
+            android:padding="0dp"/>
 
     </LinearLayout>
 
@@ -73,12 +73,12 @@
             android:text="BPM"
             android:textColor="@color/text_secondary"
             android:textSize="13sp"
-            android:fontFamily="sans-serif-medium" />
+            android:fontFamily="sans-serif-medium"/>
 
         <View
             android:layout_width="0dp"
             android:layout_height="1dp"
-            android:layout_weight="1" />
+            android:layout_weight="1"/>
 
         <Button
             android:id="@+id/bpmMinus"
@@ -89,7 +89,7 @@
             android:textColor="@color/text_primary"
             android:background="@drawable/bg_btn_secondary"
             android:stateListAnimator="@null"
-            android:padding="0dp" />
+            android:padding="0dp"/>
 
         <TextView
             android:id="@+id/bpmDisplay"
@@ -99,7 +99,7 @@
             android:textSize="30sp"
             android:textColor="@color/text_primary"
             android:fontFamily="sans-serif-black"
-            android:gravity="center" />
+            android:gravity="center"/>
 
         <Button
             android:id="@+id/bpmPlus"
@@ -110,7 +110,7 @@
             android:textColor="@color/text_primary"
             android:background="@drawable/bg_btn_secondary"
             android:stateListAnimator="@null"
-            android:padding="0dp" />
+            android:padding="0dp"/>
 
     </LinearLayout>
 
@@ -132,6 +132,7 @@
 
             <!-- KICK -->
             <LinearLayout
+                android:id="@+id/kickCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
@@ -156,18 +157,30 @@
                         android:textSize="12sp"
                         android:fontFamily="sans-serif-black"
                         android:letterSpacing="0.1"
-                        android:padding="4dp" />
+                        android:padding="4dp"/>
+
+                    <Button
+                        android:id="@+id/kickMute"
+                        android:layout_width="36dp"
+                        android:layout_height="30dp"
+                        android:text="M"
+                        android:textSize="11sp"
+                        android:textColor="@color/text_muted"
+                        android:background="@drawable/bg_btn_secondary"
+                        android:stateListAnimator="@null"
+                        android:padding="0dp"
+                        android:layout_marginEnd="6dp"/>
 
                     <Button
                         android:id="@+id/kickToggle"
-                        android:layout_width="52dp"
+                        android:layout_width="36dp"
                         android:layout_height="30dp"
                         android:text="8"
                         android:textSize="11sp"
                         android:textColor="@color/text_secondary"
                         android:background="@drawable/bg_btn_secondary"
                         android:stateListAnimator="@null"
-                        android:padding="0dp" />
+                        android:padding="0dp"/>
 
                 </LinearLayout>
 
@@ -175,12 +188,24 @@
                     android:id="@+id/kickRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal" />
+                    android:orientation="horizontal"/>
+
+                <SeekBar
+                    android:id="@+id/kickVolume"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:max="100"
+                    android:progress="100"
+                    android:progressTint="@color/accent_purple"
+                    android:thumbTint="@color/accent_purple"
+                    android:progressBackgroundTint="@color/step_inactive"/>
 
             </LinearLayout>
 
             <!-- SNARE -->
             <LinearLayout
+                android:id="@+id/snareCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
@@ -205,18 +230,30 @@
                         android:textSize="12sp"
                         android:fontFamily="sans-serif-black"
                         android:letterSpacing="0.1"
-                        android:padding="4dp" />
+                        android:padding="4dp"/>
+
+                    <Button
+                        android:id="@+id/snareMute"
+                        android:layout_width="36dp"
+                        android:layout_height="30dp"
+                        android:text="M"
+                        android:textSize="11sp"
+                        android:textColor="@color/text_muted"
+                        android:background="@drawable/bg_btn_secondary"
+                        android:stateListAnimator="@null"
+                        android:padding="0dp"
+                        android:layout_marginEnd="6dp"/>
 
                     <Button
                         android:id="@+id/snareToggle"
-                        android:layout_width="52dp"
+                        android:layout_width="36dp"
                         android:layout_height="30dp"
                         android:text="8"
                         android:textSize="11sp"
                         android:textColor="@color/text_secondary"
                         android:background="@drawable/bg_btn_secondary"
                         android:stateListAnimator="@null"
-                        android:padding="0dp" />
+                        android:padding="0dp"/>
 
                 </LinearLayout>
 
@@ -224,12 +261,24 @@
                     android:id="@+id/snareRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal" />
+                    android:orientation="horizontal"/>
+
+                <SeekBar
+                    android:id="@+id/snareVolume"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:max="100"
+                    android:progress="100"
+                    android:progressTint="@color/accent_cyan"
+                    android:thumbTint="@color/accent_cyan"
+                    android:progressBackgroundTint="@color/step_inactive"/>
 
             </LinearLayout>
 
             <!-- HI-HAT -->
             <LinearLayout
+                android:id="@+id/hatCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
@@ -254,18 +303,30 @@
                         android:textSize="12sp"
                         android:fontFamily="sans-serif-black"
                         android:letterSpacing="0.1"
-                        android:padding="4dp" />
+                        android:padding="4dp"/>
+
+                    <Button
+                        android:id="@+id/hatMute"
+                        android:layout_width="36dp"
+                        android:layout_height="30dp"
+                        android:text="M"
+                        android:textSize="11sp"
+                        android:textColor="@color/text_muted"
+                        android:background="@drawable/bg_btn_secondary"
+                        android:stateListAnimator="@null"
+                        android:padding="0dp"
+                        android:layout_marginEnd="6dp"/>
 
                     <Button
                         android:id="@+id/hatToggle"
-                        android:layout_width="52dp"
+                        android:layout_width="36dp"
                         android:layout_height="30dp"
                         android:text="8"
                         android:textSize="11sp"
                         android:textColor="@color/text_secondary"
                         android:background="@drawable/bg_btn_secondary"
                         android:stateListAnimator="@null"
-                        android:padding="0dp" />
+                        android:padding="0dp"/>
 
                 </LinearLayout>
 
@@ -273,12 +334,24 @@
                     android:id="@+id/hatRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal" />
+                    android:orientation="horizontal"/>
+
+                <SeekBar
+                    android:id="@+id/hatVolume"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:max="100"
+                    android:progress="100"
+                    android:progressTint="@color/accent_amber"
+                    android:thumbTint="@color/accent_amber"
+                    android:progressBackgroundTint="@color/step_inactive"/>
 
             </LinearLayout>
 
             <!-- OPEN HAT -->
             <LinearLayout
+                android:id="@+id/openHatCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
@@ -303,18 +376,30 @@
                         android:textSize="12sp"
                         android:fontFamily="sans-serif-black"
                         android:letterSpacing="0.1"
-                        android:padding="4dp" />
+                        android:padding="4dp"/>
+
+                    <Button
+                        android:id="@+id/openHatMute"
+                        android:layout_width="36dp"
+                        android:layout_height="30dp"
+                        android:text="M"
+                        android:textSize="11sp"
+                        android:textColor="@color/text_muted"
+                        android:background="@drawable/bg_btn_secondary"
+                        android:stateListAnimator="@null"
+                        android:padding="0dp"
+                        android:layout_marginEnd="6dp"/>
 
                     <Button
                         android:id="@+id/openHatToggle"
-                        android:layout_width="52dp"
+                        android:layout_width="36dp"
                         android:layout_height="30dp"
                         android:text="8"
                         android:textSize="11sp"
                         android:textColor="@color/text_secondary"
                         android:background="@drawable/bg_btn_secondary"
                         android:stateListAnimator="@null"
-                        android:padding="0dp" />
+                        android:padding="0dp"/>
 
                 </LinearLayout>
 
@@ -322,12 +407,24 @@
                     android:id="@+id/openHatRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal" />
+                    android:orientation="horizontal"/>
+
+                <SeekBar
+                    android:id="@+id/openHatVolume"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:max="100"
+                    android:progress="100"
+                    android:progressTint="@color/accent_green"
+                    android:thumbTint="@color/accent_green"
+                    android:progressBackgroundTint="@color/step_inactive"/>
 
             </LinearLayout>
 
             <!-- CLAP -->
             <LinearLayout
+                android:id="@+id/clapCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
@@ -352,18 +449,30 @@
                         android:textSize="12sp"
                         android:fontFamily="sans-serif-black"
                         android:letterSpacing="0.1"
-                        android:padding="4dp" />
+                        android:padding="4dp"/>
+
+                    <Button
+                        android:id="@+id/clapMute"
+                        android:layout_width="36dp"
+                        android:layout_height="30dp"
+                        android:text="M"
+                        android:textSize="11sp"
+                        android:textColor="@color/text_muted"
+                        android:background="@drawable/bg_btn_secondary"
+                        android:stateListAnimator="@null"
+                        android:padding="0dp"
+                        android:layout_marginEnd="6dp"/>
 
                     <Button
                         android:id="@+id/clapToggle"
-                        android:layout_width="52dp"
+                        android:layout_width="36dp"
                         android:layout_height="30dp"
                         android:text="8"
                         android:textSize="11sp"
                         android:textColor="@color/text_secondary"
                         android:background="@drawable/bg_btn_secondary"
                         android:stateListAnimator="@null"
-                        android:padding="0dp" />
+                        android:padding="0dp"/>
 
                 </LinearLayout>
 
@@ -371,7 +480,18 @@
                     android:id="@+id/clapRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal" />
+                    android:orientation="horizontal"/>
+
+                <SeekBar
+                    android:id="@+id/clapVolume"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:max="100"
+                    android:progress="100"
+                    android:progressTint="@color/accent_purple"
+                    android:thumbTint="@color/accent_purple"
+                    android:progressBackgroundTint="@color/step_inactive"/>
 
             </LinearLayout>
 
@@ -394,8 +514,7 @@
             android:textColor="@color/text_on_primary"
             android:background="@drawable/bg_play_btn"
             android:stateListAnimator="@null"
-            android:padding="0dp"
-            android:paddingBottom="12dp" />
+            android:padding="0dp"/>
 
     </LinearLayout>
 

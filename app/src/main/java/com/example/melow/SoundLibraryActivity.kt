@@ -35,8 +35,8 @@ class SoundLibraryActivity : AppCompatActivity() {
             if (rowName.isNotEmpty()) "Editing: $rowName" else ""
 
         val audioAttrs = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_GAME)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
             .build()
         soundPool = SoundPool.Builder()
             .setMaxStreams(2)

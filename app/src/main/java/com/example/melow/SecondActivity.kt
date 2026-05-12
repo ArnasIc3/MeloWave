@@ -56,6 +56,10 @@ class SecondActivity : AppCompatActivity() {
 
     private val soundMap = mutableMapOf<String, Int>()
 
+    // Real-time audio controls
+    private val muted = mutableMapOf("kick" to false, "snare" to false, "hat" to false, "openHat" to false, "clap" to false)
+    private val volumes = mutableMapOf("kick" to 1f, "snare" to 1f, "hat" to 1f, "openHat" to 1f, "clap" to 1f)
+
     private val soundDisplayNames = mapOf(
         "kick"    to "Kick Drum",
         "snare"   to "Snare Drum",
@@ -64,9 +68,11 @@ class SecondActivity : AppCompatActivity() {
         "clap"    to "Clap"
     )
 
-    private val handler = Handler(Looper.getMainLooper())
-    private var currentStep = 0
-    private var isPlaying = false
+    private val sequencerThread = android.os.HandlerThread("SequencerThread").also { it.start() }
+    private val sequencerHandler = Handler(sequencerThread.looper)
+    private val uiHandler = Handler(Looper.getMainLooper())
+    @Volatile private var currentStep = 0
+    @Volatile private var isPlaying = false
 
     private var bpm = 120
     private var stepDuration = calcStepDuration(120)
@@ -104,11 +110,11 @@ class SecondActivity : AppCompatActivity() {
 
     private fun setupSoundPool() {
         val audioAttrs = android.media.AudioAttributes.Builder()
-            .setUsage(android.media.AudioAttributes.USAGE_GAME)
-            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
             .build()
         soundPool = android.media.SoundPool.Builder()
-            .setMaxStreams(5)
+            .setMaxStreams(10)
             .setAudioAttributes(audioAttrs)
             .build()
 
@@ -237,18 +243,64 @@ class SecondActivity : AppCompatActivity() {
             finish()
             overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
         }
+
+        setupMuteAndVolume()
+    }
+
+    private fun setupMuteAndVolume() {
+        data class RowControls(val muteId: Int, val volumeId: Int, val cardId: Int, val key: String)
+
+        val rows = listOf(
+            RowControls(R.id.kickMute,    R.id.kickVolume,    R.id.kickCard,    "kick"),
+            RowControls(R.id.snareMute,   R.id.snareVolume,   R.id.snareCard,   "snare"),
+            RowControls(R.id.hatMute,     R.id.hatVolume,     R.id.hatCard,     "hat"),
+            RowControls(R.id.openHatMute, R.id.openHatVolume, R.id.openHatCard, "openHat"),
+            RowControls(R.id.clapMute,    R.id.clapVolume,    R.id.clapCard,    "clap")
+        )
+
+        rows.forEach { rc ->
+            val muteBtn = findViewById<Button>(rc.muteId)
+            val seekBar = findViewById<SeekBar>(rc.volumeId)
+            val card    = findViewById<LinearLayout>(rc.cardId)
+
+            muteBtn.setOnClickListener {
+                val nowMuted = !muted[rc.key]!!
+                muted[rc.key] = nowMuted
+                if (nowMuted) {
+                    muteBtn.setBackgroundResource(R.drawable.bg_stop_btn)
+                    muteBtn.setTextColor(getColor(R.color.text_primary))
+                    card.alpha = 0.4f
+                } else {
+                    muteBtn.setBackgroundResource(R.drawable.bg_btn_secondary)
+                    muteBtn.setTextColor(getColor(R.color.text_muted))
+                    card.alpha = 1f
+                }
+                muteBtn.animate().scaleX(0.85f).scaleY(0.85f).setDuration(70)
+                    .withEndAction { muteBtn.animate().scaleX(1f).scaleY(1f).setDuration(70).start() }
+                    .start()
+            }
+
+            seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
+                    volumes[rc.key] = progress / 100f
+                }
+                override fun onStartTrackingTouch(sb: SeekBar) {}
+                override fun onStopTrackingTouch(sb: SeekBar) {}
+            })
+        }
     }
 
     private fun calcStepDuration(bpm: Int) = (60000 / bpm) / 4
 
     private fun startSequencer() {
-        handler.post(object : Runnable {
+        sequencerHandler.post(object : Runnable {
             override fun run() {
                 if (!isPlaying) return
-                playStep()
-                currentStep++
-                if (currentStep >= maxSteps) currentStep = 0
-                handler.postDelayed(this, stepDuration.toLong())
+                val step = currentStep
+                triggerSounds(step)
+                currentStep = (step + 1) % maxSteps
+                uiHandler.post { highlightAllRows(step) }
+                sequencerHandler.postDelayed(this, stepDuration.toLong())
             }
         })
     }
@@ -256,28 +308,36 @@ class SecondActivity : AppCompatActivity() {
     private fun stopSequencer() {
         isPlaying = false
         currentStep = 0
+        sequencerHandler.removeCallbacksAndMessages(null)
     }
 
-    private fun playStep() {
-        highlightRow(kickRow,    kickStepsCount)
-        highlightRow(snareRow,   snareStepsCount)
-        highlightRow(hatRow,     hatStepsCount)
-        highlightRow(openHatRow, openHatStepsCount)
-        highlightRow(clapRow,    clapStepsCount)
+    private fun triggerSounds(step: Int) {
+        fun resolvedStep(count: Int) = if (count == 8) step / 2 else step
+        fun shouldFire(count: Int) = count == 16 || step % 2 == 0
 
-        fun resolvedStep(count: Int) = if (count == 8) currentStep / 2 else currentStep
-        // In 8-step mode currentStep maps 2 physical steps per button — only fire on the first of the pair
-        fun shouldFire(count: Int) = count == 16 || currentStep % 2 == 0
-
-        if (shouldFire(kickStepsCount)    && kickSteps[resolvedStep(kickStepsCount)])       soundPool.play(kickInstrument,    1f, 1f, 1, 0, 1f)
-        if (shouldFire(snareStepsCount)   && snareSteps[resolvedStep(snareStepsCount)])     soundPool.play(snareInstrument,   1f, 1f, 1, 0, 1f)
-        if (shouldFire(hatStepsCount)     && hatSteps[resolvedStep(hatStepsCount)])         soundPool.play(hatInstrument,     1f, 1f, 1, 0, 1f)
-        if (shouldFire(openHatStepsCount) && openHatSteps[resolvedStep(openHatStepsCount)]) soundPool.play(openHatInstrument, 1f, 1f, 1, 0, 1f)
-        if (shouldFire(clapStepsCount)    && clapSteps[resolvedStep(clapStepsCount)])       soundPool.play(clapInstrument,    1f, 1f, 1, 0, 1f)
+        fun fire(key: String, instrument: Int, steps: BooleanArray, count: Int) {
+            if (!muted[key]!! && shouldFire(count) && steps[resolvedStep(count)]) {
+                val v = (volumes[key]!! * 0.85f).coerceAtMost(0.85f)
+                soundPool.play(instrument, v, v, 1, 0, 1f)
+            }
+        }
+        fire("kick",    kickInstrument,    kickSteps,    kickStepsCount)
+        fire("snare",   snareInstrument,   snareSteps,   snareStepsCount)
+        fire("hat",     hatInstrument,     hatSteps,     hatStepsCount)
+        fire("openHat", openHatInstrument, openHatSteps, openHatStepsCount)
+        fire("clap",    clapInstrument,    clapSteps,    clapStepsCount)
     }
 
-    private fun highlightRow(row: LinearLayout, stepCount: Int) {
-        val stepIndex = if (stepCount == 8) currentStep / 2 else currentStep
+    private fun highlightAllRows(step: Int) {
+        highlightRow(kickRow,    kickStepsCount,    step)
+        highlightRow(snareRow,   snareStepsCount,   step)
+        highlightRow(hatRow,     hatStepsCount,     step)
+        highlightRow(openHatRow, openHatStepsCount, step)
+        highlightRow(clapRow,    clapStepsCount,    step)
+    }
+
+    private fun highlightRow(row: LinearLayout, stepCount: Int, step: Int) {
+        val stepIndex = if (stepCount == 8) step / 2 else step
         for (i in 0 until row.childCount) {
             val btn = row.getChildAt(i) as Button
             val active = btn.tag as Boolean
@@ -432,7 +492,9 @@ class SecondActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        handler.removeCallbacksAndMessages(null)
+        sequencerHandler.removeCallbacksAndMessages(null)
+        sequencerThread.quitSafely()
+        uiHandler.removeCallbacksAndMessages(null)
         soundPool.release()
     }
 
