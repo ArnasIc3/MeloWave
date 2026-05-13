@@ -8,7 +8,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-data class RowState(val steps: BooleanArray, val count: Int, val soundResName: String)
+data class RowState(val steps: BooleanArray, val count: Int, val soundResName: String, val pan: Float = 0f)
 
 data class ProjectInfo(
     val fileName: String,
@@ -50,6 +50,7 @@ object ProjectManager {
                         put("steps", stepsArray)
                         put("count", state.count)
                         put("soundResName", state.soundResName)
+                        put("pan", state.pan.toDouble())
                     })
                 }
                 put("rows", rowsJson)
@@ -108,7 +109,7 @@ object ProjectManager {
             for (i in 0 until stepsJson.length()) {
                 steps[i] = stepsJson.getBoolean(i)
             }
-            rows[key] = RowState(steps, count, r.getString("soundResName"))
+            rows[key] = RowState(steps, count, r.getString("soundResName"), r.optDouble("pan", 0.0).toFloat())
         }
         return Triple(bpm, rows, name)
     }

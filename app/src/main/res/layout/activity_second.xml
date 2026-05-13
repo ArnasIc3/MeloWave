@@ -40,7 +40,7 @@
 
         <Button
             android:id="@+id/saveButton"
-            android:layout_width="72dp"
+            android:layout_width="64dp"
             android:layout_height="38dp"
             android:text="SAVE"
             android:textSize="12sp"
@@ -201,6 +201,42 @@
                     android:thumbTint="@color/accent_purple"
                     android:progressBackgroundTint="@color/step_inactive"/>
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="6dp">
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="wrap_content"
+                        android:text="L"
+                        android:textSize="10sp"
+                        android:textColor="@color/text_muted"
+                        android:gravity="center"/>
+
+                    <SeekBar
+                        android:id="@+id/kickPan"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="200"
+                        android:progress="100"
+                        android:progressTint="@color/text_muted"
+                        android:thumbTint="@color/accent_purple"
+                        android:progressBackgroundTint="@color/step_inactive"/>
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="wrap_content"
+                        android:text="R"
+                        android:textSize="10sp"
+                        android:textColor="@color/text_muted"
+                        android:gravity="center"/>
+
+                </LinearLayout>
+
             </LinearLayout>
 
             <!-- SNARE -->
@@ -273,6 +309,42 @@
                     android:progressTint="@color/accent_cyan"
                     android:thumbTint="@color/accent_cyan"
                     android:progressBackgroundTint="@color/step_inactive"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="6dp">
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="wrap_content"
+                        android:text="L"
+                        android:textSize="10sp"
+                        android:textColor="@color/text_muted"
+                        android:gravity="center"/>
+
+                    <SeekBar
+                        android:id="@+id/snarePan"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="200"
+                        android:progress="100"
+                        android:progressTint="@color/text_muted"
+                        android:thumbTint="@color/accent_cyan"
+                        android:progressBackgroundTint="@color/step_inactive"/>
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="wrap_content"
+                        android:text="R"
+                        android:textSize="10sp"
+                        android:textColor="@color/text_muted"
+                        android:gravity="center"/>
+
+                </LinearLayout>
 
             </LinearLayout>
 
@@ -347,6 +419,42 @@
                     android:thumbTint="@color/accent_amber"
                     android:progressBackgroundTint="@color/step_inactive"/>
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="6dp">
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="wrap_content"
+                        android:text="L"
+                        android:textSize="10sp"
+                        android:textColor="@color/text_muted"
+                        android:gravity="center"/>
+
+                    <SeekBar
+                        android:id="@+id/hatPan"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="200"
+                        android:progress="100"
+                        android:progressTint="@color/text_muted"
+                        android:thumbTint="@color/accent_amber"
+                        android:progressBackgroundTint="@color/step_inactive"/>
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="wrap_content"
+                        android:text="R"
+                        android:textSize="10sp"
+                        android:textColor="@color/text_muted"
+                        android:gravity="center"/>
+
+                </LinearLayout>
+
             </LinearLayout>
 
             <!-- OPEN HAT -->
@@ -419,6 +527,42 @@
                     android:progressTint="@color/accent_green"
                     android:thumbTint="@color/accent_green"
                     android:progressBackgroundTint="@color/step_inactive"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="6dp">
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="wrap_content"
+                        android:text="L"
+                        android:textSize="10sp"
+                        android:textColor="@color/text_muted"
+                        android:gravity="center"/>
+
+                    <SeekBar
+                        android:id="@+id/openHatPan"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="200"
+                        android:progress="100"
+                        android:progressTint="@color/text_muted"
+                        android:thumbTint="@color/accent_green"
+                        android:progressBackgroundTint="@color/step_inactive"/>
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="wrap_content"
+                        android:text="R"
+                        android:textSize="10sp"
+                        android:textColor="@color/text_muted"
+                        android:gravity="center"/>
+
+                </LinearLayout>
 
             </LinearLayout>
 
@@ -493,6 +637,42 @@
                     android:thumbTint="@color/accent_purple"
                     android:progressBackgroundTint="@color/step_inactive"/>
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="6dp">
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="wrap_content"
+                        android:text="L"
+                        android:textSize="10sp"
+                        android:textColor="@color/text_muted"
+                        android:gravity="center"/>
+
+                    <SeekBar
+                        android:id="@+id/clapPan"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="200"
+                        android:progress="100"
+                        android:progressTint="@color/text_muted"
+                        android:thumbTint="@color/accent_purple"
+                        android:progressBackgroundTint="@color/step_inactive"/>
+
+                    <TextView
+                        android:layout_width="18dp"
+                        android:layout_height="wrap_content"
+                        android:text="R"
+                        android:textSize="10sp"
+                        android:textColor="@color/text_muted"
+                        android:gravity="center"/>
+
+                </LinearLayout>
+
             </LinearLayout>
 
         </LinearLayout>
@@ -506,6 +686,18 @@
         android:background="@color/bg_surface">
 
         <Button
+            android:id="@+id/reverbButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:text="FX"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:background="@drawable/bg_btn_secondary"
+            android:stateListAnimator="@null"
+            android:padding="0dp"
+            android:layout_marginEnd="20dp"/>
+
+        <Button
             android:id="@+id/playButton"
             android:layout_width="72dp"
             android:layout_height="72dp"
@@ -515,6 +707,18 @@
             android:background="@drawable/bg_play_btn"
             android:stateListAnimator="@null"
             android:padding="0dp"/>
+
+        <Button
+            android:id="@+id/eqButton"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:text="EQ"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:background="@drawable/bg_btn_secondary"
+            android:stateListAnimator="@null"
+            android:padding="0dp"
+            android:layout_marginStart="20dp"/>
 
     </LinearLayout>
 

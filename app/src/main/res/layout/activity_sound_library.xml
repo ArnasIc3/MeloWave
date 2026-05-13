@@ -59,6 +59,21 @@
 
     </LinearLayout>
 
+    <!-- Add Sound button -->
+    <Button
+        android:id="@+id/addSoundButton"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="+ Add Custom Sound"
+        android:textSize="14sp"
+        android:textColor="@color/text_on_primary"
+        android:background="@drawable/bg_btn_primary"
+        android:stateListAnimator="@null"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"/>
+
     <!-- Sound list -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/soundsRecycler"

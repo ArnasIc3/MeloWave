@@ -2,7 +2,9 @@ package com.example.melow
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.drawable.Drawable
+import android.content.res.ColorStateList
+import android.media.audiofx.Equalizer
+import android.media.audiofx.PresetReverb
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -57,8 +59,16 @@ class SecondActivity : AppCompatActivity() {
     private val soundMap = mutableMapOf<String, Int>()
 
     // Real-time audio controls
-    private val muted = mutableMapOf("kick" to false, "snare" to false, "hat" to false, "openHat" to false, "clap" to false)
-    private val volumes = mutableMapOf("kick" to 1f, "snare" to 1f, "hat" to 1f, "openHat" to 1f, "clap" to 1f)
+    private val muted   = mutableMapOf("kick" to false, "snare" to false, "hat" to false, "openHat" to false, "clap" to false)
+    private val volumes = mutableMapOf("kick" to 1f,    "snare" to 1f,    "hat" to 1f,    "openHat" to 1f,    "clap" to 1f)
+    private val pans    = mutableMapOf("kick" to 0f,    "snare" to 0f,    "hat" to 0f,    "openHat" to 0f,    "clap" to 0f)
+
+    // Per-sound pitch/level/name settings
+    @Volatile private var soundSettingsCache = mapOf<String, SoundSettings>()
+
+    // Global audio effects
+    private var reverbEffect: PresetReverb? = null
+    private var equalizerEffect: Equalizer? = null
 
     private val soundDisplayNames = mapOf(
         "kick"    to "Kick Drum",
@@ -86,6 +96,12 @@ class SecondActivity : AppCompatActivity() {
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val resName = result.data?.getStringExtra("soundResName") ?: return@registerForActivityResult
+            // If custom sound not yet in map (uploaded during this session), load it now
+            if (!soundMap.containsKey(resName)) {
+                CustomSoundManager.fileForResName(this, resName)?.let { file ->
+                    soundMap[resName] = soundPool.load(file.absolutePath, 1)
+                }
+            }
             val soundId = soundMap[resName] ?: return@registerForActivityResult
             when (currentEditingRow) {
                 "kick"    -> { kickInstrument = soundId;    kickSoundResName = resName;    updateRowLabel(R.id.kickLabel,    resName) }
@@ -102,6 +118,8 @@ class SecondActivity : AppCompatActivity() {
         setContentView(R.layout.activity_second)
 
         setupSoundPool()
+        initAudioEffects()
+        soundSettingsCache = SoundSettingsManager.getAll(this)
         // Load data into arrays BEFORE building UI so buttons reflect saved state
         intent.getStringExtra("projectJson")?.let { loadProjectData(it) }
         loadedProjectName = intent.getStringExtra("projectName")
@@ -135,7 +153,34 @@ class SecondActivity : AppCompatActivity() {
         hatInstrument     = hatSound
         openHatInstrument = openHatSound
         clapInstrument    = clapSound
+
+        CustomSoundManager.listSounds(this).forEach { sound ->
+            sound.filePath?.let { path ->
+                soundMap[sound.resName] = soundPool.load(path, 1)
+            }
+        }
     }
+
+    private fun initAudioEffects() {
+        val am = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
+        val fallbackSession = am.generateAudioSessionId()
+
+        reverbEffect = tryCreateReverb(0) ?: tryCreateReverb(fallbackSession)
+        equalizerEffect = tryCreateEq(0) ?: tryCreateEq(fallbackSession)
+
+        val prefs = getSharedPreferences("audio_effects", MODE_PRIVATE)
+        val reverbIdx = prefs.getInt("reverb_preset_idx", 0)
+        if (reverbIdx > 0) applyReverbPreset(reverbIdx)
+        restoreEqLevels(prefs.getString("eq_levels", null))
+    }
+
+    private fun tryCreateReverb(sessionId: Int): PresetReverb? = try {
+        PresetReverb(0, sessionId).apply { enabled = false }
+    } catch (_: Exception) { null }
+
+    private fun tryCreateEq(sessionId: Int): Equalizer? = try {
+        Equalizer(0, sessionId).apply { enabled = true }
+    } catch (_: Exception) { null }
 
     private fun setupUI() {
         kickRow    = findViewById(R.id.kickRow)
@@ -214,6 +259,10 @@ class SecondActivity : AppCompatActivity() {
             }
         }
 
+        // FX / EQ buttons
+        findViewById<Button>(R.id.reverbButton).setOnClickListener { showReverbDialog() }
+        findViewById<Button>(R.id.eqButton).setOnClickListener { showEqDialog() }
+
         // Play button
         val playButton = findViewById<Button>(R.id.playButton)
         playButton.setOnClickListener {
@@ -248,19 +297,20 @@ class SecondActivity : AppCompatActivity() {
     }
 
     private fun setupMuteAndVolume() {
-        data class RowControls(val muteId: Int, val volumeId: Int, val cardId: Int, val key: String)
+        data class RowControls(val muteId: Int, val volumeId: Int, val panId: Int, val cardId: Int, val key: String)
 
         val rows = listOf(
-            RowControls(R.id.kickMute,    R.id.kickVolume,    R.id.kickCard,    "kick"),
-            RowControls(R.id.snareMute,   R.id.snareVolume,   R.id.snareCard,   "snare"),
-            RowControls(R.id.hatMute,     R.id.hatVolume,     R.id.hatCard,     "hat"),
-            RowControls(R.id.openHatMute, R.id.openHatVolume, R.id.openHatCard, "openHat"),
-            RowControls(R.id.clapMute,    R.id.clapVolume,    R.id.clapCard,    "clap")
+            RowControls(R.id.kickMute,    R.id.kickVolume,    R.id.kickPan,    R.id.kickCard,    "kick"),
+            RowControls(R.id.snareMute,   R.id.snareVolume,   R.id.snarePan,   R.id.snareCard,   "snare"),
+            RowControls(R.id.hatMute,     R.id.hatVolume,     R.id.hatPan,     R.id.hatCard,     "hat"),
+            RowControls(R.id.openHatMute, R.id.openHatVolume, R.id.openHatPan, R.id.openHatCard, "openHat"),
+            RowControls(R.id.clapMute,    R.id.clapVolume,    R.id.clapPan,    R.id.clapCard,    "clap")
         )
 
         rows.forEach { rc ->
             val muteBtn = findViewById<Button>(rc.muteId)
-            val seekBar = findViewById<SeekBar>(rc.volumeId)
+            val volBar  = findViewById<SeekBar>(rc.volumeId)
+            val panBar  = findViewById<SeekBar>(rc.panId)
             val card    = findViewById<LinearLayout>(rc.cardId)
 
             muteBtn.setOnClickListener {
@@ -280,9 +330,19 @@ class SecondActivity : AppCompatActivity() {
                     .start()
             }
 
-            seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            volBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                     volumes[rc.key] = progress / 100f
+                }
+                override fun onStartTrackingTouch(sb: SeekBar) {}
+                override fun onStopTrackingTouch(sb: SeekBar) {}
+            })
+
+            // Restore pan from loaded project data
+            panBar.progress = ((pans[rc.key]!! + 1f) * 100f).toInt().coerceIn(0, 200)
+            panBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
+                    pans[rc.key] = (progress - 100) / 100f
                 }
                 override fun onStartTrackingTouch(sb: SeekBar) {}
                 override fun onStopTrackingTouch(sb: SeekBar) {}
@@ -315,17 +375,21 @@ class SecondActivity : AppCompatActivity() {
         fun resolvedStep(count: Int) = if (count == 8) step / 2 else step
         fun shouldFire(count: Int) = count == 16 || step % 2 == 0
 
-        fun fire(key: String, instrument: Int, steps: BooleanArray, count: Int) {
+        fun fire(key: String, instrument: Int, steps: BooleanArray, count: Int, resName: String) {
             if (!muted[key]!! && shouldFire(count) && steps[resolvedStep(count)]) {
-                val v = (volumes[key]!! * 0.85f).coerceAtMost(0.85f)
-                soundPool.play(instrument, v, v, 1, 0, 1f)
+                val settings = soundSettingsCache[resName] ?: SoundSettings()
+                val vol = (volumes[key]!! * settings.level * 0.85f).coerceAtMost(0.85f)
+                val pan = pans[key]!!.coerceIn(-1f, 1f)
+                val leftVol  = (vol * if (pan >= 0f) 1f else 1f + pan).coerceIn(0f, 0.85f)
+                val rightVol = (vol * if (pan <= 0f) 1f else 1f - pan).coerceIn(0f, 0.85f)
+                soundPool.play(instrument, leftVol, rightVol, 1, 0, settings.pitch)
             }
         }
-        fire("kick",    kickInstrument,    kickSteps,    kickStepsCount)
-        fire("snare",   snareInstrument,   snareSteps,   snareStepsCount)
-        fire("hat",     hatInstrument,     hatSteps,     hatStepsCount)
-        fire("openHat", openHatInstrument, openHatSteps, openHatStepsCount)
-        fire("clap",    clapInstrument,    clapSteps,    clapStepsCount)
+        fire("kick",    kickInstrument,    kickSteps,    kickStepsCount,    kickSoundResName)
+        fire("snare",   snareInstrument,   snareSteps,   snareStepsCount,   snareSoundResName)
+        fire("hat",     hatInstrument,     hatSteps,     hatStepsCount,     hatSoundResName)
+        fire("openHat", openHatInstrument, openHatSteps, openHatStepsCount, openHatSoundResName)
+        fire("clap",    clapInstrument,    clapSteps,    clapStepsCount,    clapSoundResName)
     }
 
     private fun highlightAllRows(step: Int) {
@@ -445,11 +509,11 @@ class SecondActivity : AppCompatActivity() {
             .setPositiveButton("Save") { _, _ ->
                 val name = input.text.toString().trim().ifEmpty { "My Beat" }
                 val rows = mapOf(
-                    "kick"    to RowState(kickSteps,    kickStepsCount,    kickSoundResName),
-                    "snare"   to RowState(snareSteps,   snareStepsCount,   snareSoundResName),
-                    "hat"     to RowState(hatSteps,     hatStepsCount,     hatSoundResName),
-                    "openHat" to RowState(openHatSteps, openHatStepsCount, openHatSoundResName),
-                    "clap"    to RowState(clapSteps,    clapStepsCount,    clapSoundResName)
+                    "kick"    to RowState(kickSteps,    kickStepsCount,    kickSoundResName,    pans["kick"]!!),
+                    "snare"   to RowState(snareSteps,   snareStepsCount,   snareSoundResName,   pans["snare"]!!),
+                    "hat"     to RowState(hatSteps,     hatStepsCount,     hatSoundResName,     pans["hat"]!!),
+                    "openHat" to RowState(openHatSteps, openHatStepsCount, openHatSoundResName, pans["openHat"]!!),
+                    "clap"    to RowState(clapSteps,    clapStepsCount,    clapSoundResName,    pans["clap"]!!)
                 )
                 val saved = ProjectManager.saveProject(this, name, bpm, rows)
                 Toast.makeText(
@@ -482,11 +546,128 @@ class SecondActivity : AppCompatActivity() {
         state.steps.copyInto(stepsArray)
         val soundId = soundMap[state.soundResName]
         when (type) {
-            "kick"    -> { kickStepsCount    = state.count; if (soundId != null) kickInstrument    = soundId; kickSoundResName    = state.soundResName }
-            "snare"   -> { snareStepsCount   = state.count; if (soundId != null) snareInstrument   = soundId; snareSoundResName   = state.soundResName }
-            "hat"     -> { hatStepsCount     = state.count; if (soundId != null) hatInstrument     = soundId; hatSoundResName     = state.soundResName }
-            "openHat" -> { openHatStepsCount = state.count; if (soundId != null) openHatInstrument = soundId; openHatSoundResName = state.soundResName }
-            "clap"    -> { clapStepsCount    = state.count; if (soundId != null) clapInstrument    = soundId; clapSoundResName    = state.soundResName }
+            "kick"    -> { kickStepsCount    = state.count; if (soundId != null) kickInstrument    = soundId; kickSoundResName    = state.soundResName; pans["kick"]    = state.pan }
+            "snare"   -> { snareStepsCount   = state.count; if (soundId != null) snareInstrument   = soundId; snareSoundResName   = state.soundResName; pans["snare"]   = state.pan }
+            "hat"     -> { hatStepsCount     = state.count; if (soundId != null) hatInstrument     = soundId; hatSoundResName     = state.soundResName; pans["hat"]     = state.pan }
+            "openHat" -> { openHatStepsCount = state.count; if (soundId != null) openHatInstrument = soundId; openHatSoundResName = state.soundResName; pans["openHat"] = state.pan }
+            "clap"    -> { clapStepsCount    = state.count; if (soundId != null) clapInstrument    = soundId; clapSoundResName    = state.soundResName; pans["clap"]    = state.pan }
+        }
+    }
+
+    // ── Reverb ──────────────────────────────────────────────────────────────
+
+    private val reverbPresetLabels = arrayOf("Off", "Small Room", "Medium Room", "Large Room", "Hall", "Large Hall", "Plate")
+    private val reverbPresetValues = shortArrayOf(
+        PresetReverb.PRESET_NONE, PresetReverb.PRESET_SMALLROOM, PresetReverb.PRESET_MEDIUMROOM,
+        PresetReverb.PRESET_LARGEROOM, PresetReverb.PRESET_MEDIUMHALL, PresetReverb.PRESET_LARGEHALL,
+        PresetReverb.PRESET_PLATE
+    )
+
+    private fun showReverbDialog() {
+        val reverb = reverbEffect ?: run {
+            Toast.makeText(this, "Reverb not available on this device", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val prefs = getSharedPreferences("audio_effects", MODE_PRIVATE)
+        val current = prefs.getInt("reverb_preset_idx", 0)
+        AlertDialog.Builder(this)
+            .setTitle("Reverb")
+            .setSingleChoiceItems(reverbPresetLabels, current) { _, idx ->
+                applyReverbPreset(idx)
+                prefs.edit().putInt("reverb_preset_idx", idx).apply()
+            }
+            .setPositiveButton("Close", null)
+            .show()
+    }
+
+    private fun applyReverbPreset(idx: Int) {
+        val reverb = reverbEffect ?: return
+        if (idx == 0) {
+            reverb.enabled = false
+        } else {
+            reverb.preset = reverbPresetValues.getOrElse(idx) { PresetReverb.PRESET_NONE }
+            reverb.enabled = true
+        }
+    }
+
+    // ── Equalizer ───────────────────────────────────────────────────────────
+
+    private fun showEqDialog() {
+        val eq = equalizerEffect ?: run {
+            Toast.makeText(this, "EQ not available on this device", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val numBands = eq.numberOfBands.toInt()
+        val range    = eq.bandLevelRange          // [minMb, maxMb] in millibels
+        val dp       = resources.displayMetrics.density
+        val pad      = (20 * dp).toInt()
+
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, (12 * dp).toInt(), pad, 0)
+            setBackgroundColor(getColor(R.color.bg_surface))
+        }
+
+        val bandSeekBars = mutableListOf<SeekBar>()
+
+        for (band in 0 until numBands) {
+            val freqMilliHz = eq.getCenterFreq(band.toShort())
+            val freqLabel   = if (freqMilliHz >= 1_000_000) "${freqMilliHz / 1_000_000}kHz" else "${freqMilliHz / 1000}Hz"
+            val currentMb   = eq.getBandLevel(band.toShort())
+            val currentDb   = currentMb / 100
+
+            val bandLabel = TextView(this).apply {
+                text = "$freqLabel   ${if (currentDb >= 0) "+$currentDb" else "$currentDb"} dB"
+                setTextColor(getColor(R.color.text_secondary))
+                textSize = 12f
+                setPadding(0, (10 * dp).toInt(), 0, 4)
+            }
+            layout.addView(bandLabel)
+
+            val seekBar = SeekBar(this).apply {
+                max      = range[1] - range[0]
+                progress = (currentMb - range[0]).toInt()
+                progressTintList = ColorStateList.valueOf(getColor(R.color.accent_cyan))
+                thumbTintList    = ColorStateList.valueOf(getColor(R.color.accent_cyan))
+                progressBackgroundTintList = ColorStateList.valueOf(getColor(R.color.step_inactive))
+            }
+            seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(sb: SeekBar, p: Int, fromUser: Boolean) {
+                    val mb = (range[0] + p).toShort()
+                    eq.setBandLevel(band.toShort(), mb)
+                    val db = mb / 100
+                    bandLabel.text = "$freqLabel   ${if (db >= 0) "+$db" else "$db"} dB"
+                }
+                override fun onStartTrackingTouch(sb: SeekBar) {}
+                override fun onStopTrackingTouch(sb: SeekBar) { saveEqLevels() }
+            })
+            layout.addView(seekBar)
+            bandSeekBars.add(seekBar)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Equalizer")
+            .setView(layout)
+            .setNeutralButton("Reset") { _, _ ->
+                for (band in 0 until numBands) eq.setBandLevel(band.toShort(), 0)
+                bandSeekBars.forEach { it.progress = (-range[0]).toInt() }
+                saveEqLevels()
+            }
+            .setPositiveButton("Close", null)
+            .show()
+    }
+
+    private fun saveEqLevels() {
+        val eq = equalizerEffect ?: return
+        val levels = (0 until eq.numberOfBands).map { eq.getBandLevel(it.toShort()).toString() }.joinToString(",")
+        getSharedPreferences("audio_effects", MODE_PRIVATE).edit().putString("eq_levels", levels).apply()
+    }
+
+    private fun restoreEqLevels(saved: String?) {
+        saved ?: return
+        val eq = equalizerEffect ?: return
+        saved.split(",").forEachIndexed { band, mb ->
+            if (band < eq.numberOfBands) eq.setBandLevel(band.toShort(), mb.trim().toShortOrNull() ?: 0)
         }
     }
 
@@ -496,6 +677,14 @@ class SecondActivity : AppCompatActivity() {
         sequencerThread.quitSafely()
         uiHandler.removeCallbacksAndMessages(null)
         soundPool.release()
+        reverbEffect?.release()
+        equalizerEffect?.release()
+    }
+
+    @Suppress("OVERRIDE_DEPRECATION")
+    override fun onResume() {
+        super.onResume()
+        soundSettingsCache = SoundSettingsManager.getAll(this)
     }
 
     @Suppress("OVERRIDE_DEPRECATION")
