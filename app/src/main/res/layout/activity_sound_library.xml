@@ -59,20 +59,41 @@
 
     </LinearLayout>
 
-    <!-- Add Sound button -->
-    <Button
-        android:id="@+id/addSoundButton"
+    <!-- Add / Record buttons -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:text="+ Add Custom Sound"
-        android:textSize="14sp"
-        android:textColor="@color/text_on_primary"
-        android:background="@drawable/bg_btn_primary"
-        android:stateListAnimator="@null"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginTop="12dp"
-        android:layout_marginBottom="4dp"/>
+        android:layout_marginBottom="4dp">
+
+        <Button
+            android:id="@+id/addSoundButton"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="+ Add Sound"
+            android:textSize="13sp"
+            android:textColor="@color/text_on_primary"
+            android:background="@drawable/bg_btn_primary"
+            android:stateListAnimator="@null"
+            android:layout_marginEnd="6dp"/>
+
+        <Button
+            android:id="@+id/recordSoundButton"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="&#9679; Record"
+            android:textSize="13sp"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/bg_btn_secondary"
+            android:stateListAnimator="@null"
+            android:layout_marginStart="6dp"/>
+
+    </LinearLayout>
 
     <!-- Sound list -->
     <androidx.recyclerview.widget.RecyclerView

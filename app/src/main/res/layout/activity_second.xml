@@ -40,14 +40,26 @@
 
         <Button
             android:id="@+id/saveButton"
-            android:layout_width="64dp"
+            android:layout_width="56dp"
             android:layout_height="38dp"
             android:text="SAVE"
-            android:textSize="12sp"
+            android:textSize="11sp"
             android:textColor="@color/text_primary"
             android:background="@drawable/bg_btn_secondary"
             android:stateListAnimator="@null"
             android:padding="0dp"/>
+
+        <Button
+            android:id="@+id/exportButton"
+            android:layout_width="44dp"
+            android:layout_height="38dp"
+            android:text="&#11014;"
+            android:textSize="16sp"
+            android:textColor="@color/accent_cyan"
+            android:background="@android:color/transparent"
+            android:stateListAnimator="@null"
+            android:padding="0dp"
+            android:layout_marginStart="4dp"/>
 
     </LinearLayout>
 

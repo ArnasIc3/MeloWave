@@ -1,17 +1,26 @@
 package com.example.melow
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
 import android.media.SoundPool
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import java.io.ByteArrayOutputStream
 
 class SoundLibraryActivity : AppCompatActivity() {
 
@@ -30,6 +39,17 @@ class SoundLibraryActivity : AppCompatActivity() {
     private lateinit var adapter: SoundAdapter
     private var currentResName = ""
     private var settingsCache = mutableMapOf<String, SoundSettings>()
+
+    private var audioRecord: AudioRecord? = null
+    @Volatile private var isRecording = false
+    private val uiHandler = Handler(Looper.getMainLooper())
+
+    private val recordPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) startRecordingDialog()
+        else Toast.makeText(this, "Microphone permission required", Toast.LENGTH_SHORT).show()
+    }
 
     private val filePicker = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -82,6 +102,13 @@ class SoundLibraryActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.addSoundButton).setOnClickListener {
             filePicker.launch(arrayOf("audio/*"))
+        }
+
+        findViewById<Button>(R.id.recordSoundButton).setOnClickListener {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                == PackageManager.PERMISSION_GRANTED
+            ) startRecordingDialog()
+            else recordPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
 
         findViewById<Button>(R.id.backButton).setOnClickListener { navigateBack() }
@@ -265,6 +292,118 @@ class SoundLibraryActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun startRecordingDialog() {
+        val sampleRate = 44100
+        val bufferSize = AudioRecord.getMinBufferSize(
+            sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
+        ).coerceAtLeast(4096)
+
+        val record = try {
+            AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                sampleRate,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                bufferSize
+            ).also { if (it.state != AudioRecord.STATE_INITIALIZED) throw IllegalStateException() }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Microphone not available", Toast.LENGTH_SHORT).show()
+            return
+        }
+        audioRecord = record
+
+        val dp = resources.displayMetrics.density
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = android.view.Gravity.CENTER
+            setPadding((24 * dp).toInt(), (24 * dp).toInt(), (24 * dp).toInt(), (16 * dp).toInt())
+            setBackgroundColor(getColor(R.color.bg_surface))
+        }
+
+        val indicator = TextView(this).apply {
+            text = "● REC  0:00"
+            textSize = 22f
+            setTextColor(getColor(R.color.button_danger))
+            gravity = android.view.Gravity.CENTER
+        }
+        layout.addView(indicator, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).also { it.bottomMargin = (8 * dp).toInt() })
+
+        val hint = TextView(this).apply {
+            text = "Tap Stop to finish"
+            textSize = 13f
+            setTextColor(getColor(R.color.text_muted))
+            gravity = android.view.Gravity.CENTER
+        }
+        layout.addView(hint)
+
+        var elapsedSeconds = 0
+        val timerRunnable = object : Runnable {
+            override fun run() {
+                if (!isRecording) return
+                elapsedSeconds++
+                val m = elapsedSeconds / 60
+                val s = elapsedSeconds % 60
+                indicator.text = "● REC  $m:${s.toString().padStart(2, '0')}"
+                uiHandler.postDelayed(this, 1000)
+            }
+        }
+
+        val pcmOut = ByteArrayOutputStream()
+        isRecording = true
+        record.startRecording()
+        uiHandler.postDelayed(timerRunnable, 1000)
+
+        Thread {
+            val buf = ShortArray(bufferSize / 2)
+            while (isRecording) {
+                val read = record.read(buf, 0, buf.size)
+                if (read > 0) {
+                    val bytes = ByteArray(read * 2)
+                    for (i in 0 until read) {
+                        bytes[i * 2]     = (buf[i].toInt() and 0xFF).toByte()
+                        bytes[i * 2 + 1] = (buf[i].toInt() shr 8 and 0xFF).toByte()
+                    }
+                    synchronized(pcmOut) { pcmOut.write(bytes) }
+                }
+            }
+            record.stop()
+            record.release()
+            audioRecord = null
+
+            val pcm = synchronized(pcmOut) { pcmOut.toByteArray() }
+            val fileName = CustomSoundManager.saveRecording(this, pcm, sampleRate)
+            uiHandler.post {
+                if (fileName != null) {
+                    val newItem = SoundItem(
+                        name     = fileName.substringBeforeLast('.'),
+                        category = "Custom",
+                        resName  = "custom:$fileName",
+                        resId    = 0,
+                        filePath = CustomSoundManager.customSoundsDir(this).resolve(fileName).absolutePath
+                    )
+                    loadCustomIntoPool(newItem)
+                    allSounds.add(newItem)
+                    adapter.notifyItemInserted(allSounds.size - 1)
+                    Toast.makeText(this, "\"${newItem.name}\" saved", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Failed to save recording", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }.start()
+
+        AlertDialog.Builder(this)
+            .setTitle("Recording")
+            .setView(layout)
+            .setPositiveButton("Stop") { _, _ ->
+                isRecording = false
+                uiHandler.removeCallbacks(timerRunnable)
+            }
+            .setCancelable(false)
+            .show()
+    }
+
     private fun navigateBack() {
         finish()
         overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
@@ -272,6 +411,7 @@ class SoundLibraryActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        isRecording = false
         soundPool.release()
     }
 

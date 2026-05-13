@@ -55,6 +55,40 @@ object CustomSoundManager {
         return if (file.exists()) file else null
     }
 
+    fun saveRecording(context: Context, pcmData: ByteArray, sampleRate: Int): String? {
+        return try {
+            val fileName = "rec_${System.currentTimeMillis()}.wav"
+            val file = File(customSoundsDir(context), fileName)
+            file.outputStream().use { out ->
+                val numChannels = 1
+                val bitsPerSample = 16
+                val byteRate = sampleRate * numChannels * bitsPerSample / 8
+                val blockAlign = numChannels * bitsPerSample / 8
+                val dataSize = pcmData.size
+                val totalSize = 36 + dataSize
+                fun Int.le4() = byteArrayOf(toByte(), shr(8).toByte(), shr(16).toByte(), shr(24).toByte())
+                fun Int.le2() = byteArrayOf(toByte(), shr(8).toByte())
+                out.write("RIFF".toByteArray())
+                out.write(totalSize.le4())
+                out.write("WAVE".toByteArray())
+                out.write("fmt ".toByteArray())
+                out.write(16.le4())                    // subchunk1 size
+                out.write(1.le2())                     // PCM format
+                out.write(numChannels.le2())
+                out.write(sampleRate.le4())
+                out.write(byteRate.le4())
+                out.write(blockAlign.le2())
+                out.write(bitsPerSample.le2())
+                out.write("data".toByteArray())
+                out.write(dataSize.le4())
+                out.write(pcmData)
+            }
+            fileName
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun resolveFileName(context: Context, uri: Uri): String? {
         context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {

@@ -8,10 +8,12 @@ import android.media.audiofx.PresetReverb
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.core.content.ContextCompat
 
 class SecondActivity : AppCompatActivity() {
@@ -287,6 +289,11 @@ class SecondActivity : AppCompatActivity() {
             showSaveDialog()
         }
 
+        // Export & Share button
+        findViewById<Button>(R.id.exportButton).setOnClickListener {
+            showExportDialog()
+        }
+
         // Back button
         findViewById<Button>(R.id.backButton).setOnClickListener {
             finish()
@@ -525,6 +532,84 @@ class SecondActivity : AppCompatActivity() {
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun showExportDialog() {
+        val dp       = resources.displayMetrics.density
+        val layout   = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity     = android.view.Gravity.CENTER
+            setPadding((24 * dp).toInt(), (24 * dp).toInt(), (24 * dp).toInt(), (16 * dp).toInt())
+            setBackgroundColor(getColor(R.color.bg_surface))
+        }
+
+        val statusText = TextView(this).apply {
+            text      = "Rendering beat..."
+            textSize  = 16f
+            gravity   = android.view.Gravity.CENTER
+            setTextColor(getColor(R.color.text_primary))
+        }
+        val progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max     = 100
+            progress = 0
+            isIndeterminate = false
+            progressTintList = ColorStateList.valueOf(getColor(R.color.accent_cyan))
+        }
+        layout.addView(statusText, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).also { it.bottomMargin = (16 * dp).toInt() })
+        layout.addView(progressBar, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Export Beat")
+            .setView(layout)
+            .setCancelable(false)
+            .create()
+        dialog.show()
+
+        val rows = mapOf(
+            "kick"    to RowState(kickSteps,    kickStepsCount,    kickSoundResName,    pans["kick"]!!),
+            "snare"   to RowState(snareSteps,   snareStepsCount,   snareSoundResName,   pans["snare"]!!),
+            "hat"     to RowState(hatSteps,     hatStepsCount,     hatSoundResName,     pans["hat"]!!),
+            "openHat" to RowState(openHatSteps, openHatStepsCount, openHatSoundResName, pans["openHat"]!!),
+            "clap"    to RowState(clapSteps,    clapStepsCount,    clapSoundResName,    pans["clap"]!!)
+        )
+
+        BeatExporter.export(
+            context      = this,
+            bpm          = bpm,
+            rows         = rows,
+            volumes      = volumes.toMap(),
+            pans         = pans.toMap(),
+            muted        = muted.toMap(),
+            soundSettings = soundSettingsCache,
+            onProgress   = { pct -> uiHandler.post { progressBar.progress = pct } },
+            onDone       = { file ->
+                uiHandler.post {
+                    dialog.dismiss()
+                    if (file != null) {
+                        statusText.text = "Done!"
+                        shareFile(file)
+                    } else {
+                        Toast.makeText(this, "Export failed", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        )
+    }
+
+    private fun shareFile(file: java.io.File) {
+        val uri = FileProvider.getUriForFile(
+            this, "${packageName}.fileprovider", file
+        )
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type  = "audio/wav"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, "MeloWave Beat")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivity(Intent.createChooser(intent, "Share beat via…"))
     }
 
     private fun loadProjectData(json: String) {
