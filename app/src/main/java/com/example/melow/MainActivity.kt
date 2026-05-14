@@ -57,6 +57,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        findViewById<Button>(R.id.arrangementButton).setOnClickListener {
+            animateButton(it as Button) {
+                startActivity(Intent(this, ArrangementActivity::class.java))
+                overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+            }
+        }
+
         findViewById<Button>(R.id.soundLibraryButton).setOnClickListener {
             animateButton(it as Button) {
                 startActivity(Intent(this, SoundLibraryActivity::class.java))

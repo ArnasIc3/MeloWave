@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg_primary">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="16dp"
+        android:background="@color/bg_surface">
+
+        <Button
+            android:id="@+id/backButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="&#8592;"
+            android:textSize="22sp"
+            android:textColor="@color/text_primary"
+            android:background="@android:color/transparent"
+            android:stateListAnimator="@null"
+            android:padding="0dp"/>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="ARRANGEMENT"
+            android:textSize="16sp"
+            android:textColor="@color/text_primary"
+            android:fontFamily="sans-serif-black"
+            android:letterSpacing="0.12"
+            android:gravity="center"/>
+
+        <Button
+            android:id="@+id/exportArrButton"
+            android:layout_width="44dp"
+            android:layout_height="38dp"
+            android:text="&#11014;"
+            android:textSize="16sp"
+            android:textColor="@color/accent_cyan"
+            android:background="@android:color/transparent"
+            android:stateListAnimator="@null"
+            android:padding="0dp"/>
+
+        <Button
+            android:id="@+id/saveArrButton"
+            android:layout_width="52dp"
+            android:layout_height="38dp"
+            android:text="SAVE"
+            android:textSize="11sp"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/bg_btn_secondary"
+            android:stateListAnimator="@null"
+            android:padding="0dp"
+            android:layout_marginStart="4dp"/>
+
+    </LinearLayout>
+
+    <!-- BPM + Swing card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_card"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BPM"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"/>
+
+            <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
+
+            <Button
+                android:id="@+id/bpmMinus"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:text="&#8722;"
+                android:textSize="20sp"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/bg_btn_secondary"
+                android:stateListAnimator="@null"
+                android:padding="0dp"/>
+
+            <TextView
+                android:id="@+id/bpmDisplay"
+                android:layout_width="72dp"
+                android:layout_height="wrap_content"
+                android:text="120"
+                android:textSize="26sp"
+                android:textColor="@color/text_primary"
+                android:fontFamily="sans-serif-black"
+                android:gravity="center"/>
+
+            <Button
+                android:id="@+id/bpmPlus"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:text="+"
+                android:textSize="20sp"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/bg_btn_secondary"
+                android:stateListAnimator="@null"
+                android:padding="0dp"/>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="6dp">
+
+            <TextView
+                android:layout_width="52dp"
+                android:layout_height="wrap_content"
+                android:text="Swing"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"/>
+
+            <SeekBar
+                android:id="@+id/swingBar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="50"
+                android:progress="0"/>
+
+            <TextView
+                android:id="@+id/swingLabel"
+                android:layout_width="36dp"
+                android:layout_height="wrap_content"
+                android:text="0%"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:gravity="end"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Current bar indicator -->
+    <TextView
+        android:id="@+id/nowPlayingLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="12sp"
+        android:textColor="@color/accent_cyan"
+        android:gravity="center"
+        android:paddingTop="6dp"
+        android:paddingBottom="2dp"/>
+
+    <!-- Bar list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/barRecycler"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:clipToPadding="false"/>
+
+    <!-- Add Bar button -->
+    <Button
+        android:id="@+id/addBarButton"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="+ Add Bar"
+        android:textSize="14sp"
+        android:textColor="@color/text_on_primary"
+        android:background="@drawable/bg_btn_primary"
+        android:stateListAnimator="@null"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Play bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@color/bg_surface">
+
+        <Button
+            android:id="@+id/playButton"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:text="&#9654;"
+            android:textSize="26sp"
+            android:textColor="@color/text_on_primary"
+            android:background="@drawable/bg_play_btn"
+            android:stateListAnimator="@null"
+            android:padding="0dp"/>
+
+    </LinearLayout>
+
+</LinearLayout>

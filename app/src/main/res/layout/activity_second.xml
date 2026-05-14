@@ -63,12 +63,11 @@
 
     </LinearLayout>
 
-    <!-- BPM Control -->
+    <!-- BPM + Swing card -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:orientation="vertical"
         android:background="@drawable/bg_card"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
@@ -76,53 +75,93 @@
         android:layout_marginBottom="4dp"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- BPM row -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="BPM"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp"
-            android:fontFamily="sans-serif-medium"/>
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BPM"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-medium"/>
 
-        <Button
-            android:id="@+id/bpmMinus"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:text="&#8722;"
-            android:textSize="22sp"
-            android:textColor="@color/text_primary"
-            android:background="@drawable/bg_btn_secondary"
-            android:stateListAnimator="@null"
-            android:padding="0dp"/>
+            <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
 
-        <TextView
-            android:id="@+id/bpmDisplay"
-            android:layout_width="80dp"
+            <Button
+                android:id="@+id/bpmMinus"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:text="&#8722;"
+                android:textSize="22sp"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/bg_btn_secondary"
+                android:stateListAnimator="@null"
+                android:padding="0dp"/>
+
+            <TextView
+                android:id="@+id/bpmDisplay"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:text="120"
+                android:textSize="30sp"
+                android:textColor="@color/text_primary"
+                android:fontFamily="sans-serif-black"
+                android:gravity="center"/>
+
+            <Button
+                android:id="@+id/bpmPlus"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:text="+"
+                android:textSize="22sp"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/bg_btn_secondary"
+                android:stateListAnimator="@null"
+                android:padding="0dp"/>
+
+        </LinearLayout>
+
+        <!-- Swing row -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="120"
-            android:textSize="30sp"
-            android:textColor="@color/text_primary"
-            android:fontFamily="sans-serif-black"
-            android:gravity="center"/>
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="6dp">
 
-        <Button
-            android:id="@+id/bpmPlus"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:text="+"
-            android:textSize="22sp"
-            android:textColor="@color/text_primary"
-            android:background="@drawable/bg_btn_secondary"
-            android:stateListAnimator="@null"
-            android:padding="0dp"/>
+            <TextView
+                android:layout_width="52dp"
+                android:layout_height="wrap_content"
+                android:text="Swing"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"/>
+
+            <SeekBar
+                android:id="@+id/swingBar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="50"
+                android:progress="0"/>
+
+            <TextView
+                android:id="@+id/swingLabel"
+                android:layout_width="36dp"
+                android:layout_height="wrap_content"
+                android:text="0%"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:gravity="end"/>
+
+        </LinearLayout>
 
     </LinearLayout>
 

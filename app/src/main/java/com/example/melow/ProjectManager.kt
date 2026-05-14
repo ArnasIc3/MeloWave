@@ -34,13 +34,15 @@ object ProjectManager {
         context: Context,
         name: String,
         bpm: Int,
-        rows: Map<String, RowState>
+        rows: Map<String, RowState>,
+        swing: Float = 0f
     ): Boolean {
         return try {
             val createdAt = System.currentTimeMillis()
             val root = JSONObject().apply {
                 put("name", name)
                 put("bpm", bpm)
+                put("swing", swing.toDouble())
                 put("createdAt", createdAt)
                 val rowsJson = JSONObject()
                 rows.forEach { (key, state) ->
@@ -113,4 +115,7 @@ object ProjectManager {
         }
         return Triple(bpm, rows, name)
     }
+
+    fun parseSwing(json: String): Float =
+        try { JSONObject(json).optDouble("swing", 0.0).toFloat() } catch (_: Exception) { 0f }
 }

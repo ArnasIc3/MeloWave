@@ -88,6 +88,7 @@ class SecondActivity : AppCompatActivity() {
 
     private var bpm = 120
     private var stepDuration = calcStepDuration(120)
+    private var swing = 0f   // 0.0 (straight) .. 0.5 (triplet)
 
     private var loadedProjectName: String? = null
 
@@ -209,6 +210,20 @@ class SecondActivity : AppCompatActivity() {
         updateRowLabel(R.id.hatLabel,     hatSoundResName)
         updateRowLabel(R.id.openHatLabel, openHatSoundResName)
         updateRowLabel(R.id.clapLabel,    clapSoundResName)
+
+        // Swing slider
+        val swingLabel = findViewById<TextView>(R.id.swingLabel)
+        val swingBar   = findViewById<SeekBar>(R.id.swingBar)
+        swingBar.progress = (swing * 100).toInt()
+        swingLabel.text   = "${(swing * 100).toInt()}%"
+        swingBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar, p: Int, fromUser: Boolean) {
+                swing = p / 100f
+                swingLabel.text = "$p%"
+            }
+            override fun onStartTrackingTouch(sb: SeekBar) {}
+            override fun onStopTrackingTouch(sb: SeekBar) {}
+        })
 
         // BPM controls
         val bpmDisplay = findViewById<TextView>(R.id.bpmDisplay)
@@ -367,7 +382,11 @@ class SecondActivity : AppCompatActivity() {
                 triggerSounds(step)
                 currentStep = (step + 1) % maxSteps
                 uiHandler.post { highlightAllRows(step) }
-                sequencerHandler.postDelayed(this, stepDuration.toLong())
+                val delay = if (step % 2 == 0)
+                    (stepDuration * (1f + swing)).toLong()
+                else
+                    (stepDuration * (1f - swing)).toLong()
+                sequencerHandler.postDelayed(this, delay)
             }
         })
     }
@@ -522,7 +541,7 @@ class SecondActivity : AppCompatActivity() {
                     "openHat" to RowState(openHatSteps, openHatStepsCount, openHatSoundResName, pans["openHat"]!!),
                     "clap"    to RowState(clapSteps,    clapStepsCount,    clapSoundResName,    pans["clap"]!!)
                 )
-                val saved = ProjectManager.saveProject(this, name, bpm, rows)
+                val saved = ProjectManager.saveProject(this, name, bpm, rows, swing)
                 Toast.makeText(
                     this,
                     if (saved) "\"$name\" saved!" else "Save failed",
@@ -584,6 +603,7 @@ class SecondActivity : AppCompatActivity() {
             pans         = pans.toMap(),
             muted        = muted.toMap(),
             soundSettings = soundSettingsCache,
+            swing        = swing,
             onProgress   = { pct -> uiHandler.post { progressBar.progress = pct } },
             onDone       = { file ->
                 uiHandler.post {
@@ -616,6 +636,7 @@ class SecondActivity : AppCompatActivity() {
         try {
             val (loadedBpm, rows, _) = ProjectManager.parseRows(json)
             bpm = loadedBpm
+            swing = ProjectManager.parseSwing(json)
             stepDuration = calcStepDuration(bpm)
             rows["kick"]?.let    { applyRow(it, kickSteps,    "kick") }
             rows["snare"]?.let   { applyRow(it, snareSteps,   "snare") }
