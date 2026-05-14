@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(cd \"c:\\\\Users\\\\Arnas\\\\Desktop\\\\Nereliacines\\\\MeloWave\"; $env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; .\\\\gradlew.bat installDebug 2>&1 | Select-Object -Last 20)"
+    ]
+  }
+}

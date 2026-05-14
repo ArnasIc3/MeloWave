@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
@@ -11,6 +12,21 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Show logged-in username
+        val username = intent.getStringExtra("username") ?: ""
+        if (username.isNotEmpty()) {
+            findViewById<TextView>(R.id.usernameLabel).text = "Hi, $username"
+        }
+
+        // Logout
+        findViewById<Button>(R.id.logoutButton).setOnClickListener {
+            getSharedPreferences(LoginActivity.PREFS_AUTH, MODE_PRIVATE)
+                .edit().remove(LoginActivity.KEY_REMEMBERED).apply()
+            startActivity(Intent(this, LoginActivity::class.java))
+            overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+            finish()
+        }
 
         val logoSection = findViewById<LinearLayout>(R.id.logoSection)
         val buttonSection = findViewById<LinearLayout>(R.id.buttonSection)
