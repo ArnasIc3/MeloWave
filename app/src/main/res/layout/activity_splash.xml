@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:paddingBottom="60dp"
     android:background="@color/bg_primary">
 
     <TextView
@@ -14,13 +15,7 @@
         android:textSize="42sp"
         android:textColor="@color/text_primary"
         android:fontFamily="sans-serif-black"
-        android:letterSpacing="0.2"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/splashSubtitle"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintVerticalChainStyle="packed"
-        app:layout_constraintVerticalBias="0.44"/>
+        android:letterSpacing="0.2"/>
 
     <TextView
         android:id="@+id/splashSubtitle"
@@ -29,10 +24,6 @@
         android:text="Make your beats"
         android:textSize="15sp"
         android:textColor="@color/text_secondary"
-        android:layout_marginTop="12dp"
-        app:layout_constraintTop_toBottomOf="@+id/splashTitle"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        android:layout_marginTop="12dp"/>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>
