@@ -15,9 +15,7 @@
         android:paddingTop="48dp"
         android:paddingBottom="32dp">
 
-        <!-- Logo (long-press for debug) -->
         <TextView
-            android:id="@+id/appTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="MELOWAVE"
@@ -31,21 +29,30 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Sign in to continue"
+            android:text="Create an account"
             android:textSize="14sp"
             android:textColor="@color/text_secondary"
             android:layout_marginTop="6dp"
             android:layout_marginBottom="36dp"/>
 
-        <!-- Login card -->
         <LinearLayout
-            android:id="@+id/loginCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:background="@drawable/bg_card"
             android:padding="24dp"
             android:layout_marginBottom="12dp">
+
+            <EditText
+                android:id="@+id/usernameEdit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Username"
+                android:textColorHint="@color/text_muted"
+                android:textColor="@color/text_primary"
+                android:inputType="text"
+                android:imeOptions="actionNext"
+                android:layout_marginBottom="14dp"/>
 
             <EditText
                 android:id="@+id/emailEdit"
@@ -63,18 +70,18 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginBottom="10dp">
+                android:layout_marginBottom="14dp">
 
                 <EditText
                     android:id="@+id/passwordEdit"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="Password"
+                    android:hint="Password (min 6 chars, 1 number)"
                     android:textColorHint="@color/text_muted"
                     android:textColor="@color/text_primary"
                     android:inputType="textPassword"
-                    android:imeOptions="actionDone"/>
+                    android:imeOptions="actionNext"/>
 
                 <Button
                     android:id="@+id/showPasswordBtn"
@@ -90,8 +97,19 @@
 
             </LinearLayout>
 
+            <EditText
+                android:id="@+id/confirmPasswordEdit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Confirm password"
+                android:textColorHint="@color/text_muted"
+                android:textColor="@color/text_primary"
+                android:inputType="textPassword"
+                android:imeOptions="actionDone"
+                android:layout_marginBottom="10dp"/>
+
             <TextView
-                android:id="@+id/loginError"
+                android:id="@+id/registerError"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text=""
@@ -100,20 +118,11 @@
                 android:layout_marginBottom="14dp"
                 android:visibility="gone"/>
 
-            <CheckBox
-                android:id="@+id/rememberCheck"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Remember me"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                android:layout_marginBottom="18dp"/>
-
             <Button
-                android:id="@+id/loginButton"
+                android:id="@+id/createAccountButton"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
-                android:text="LOG IN"
+                android:text="CREATE ACCOUNT"
                 android:textSize="15sp"
                 android:textColor="@color/text_on_primary"
                 android:background="@drawable/bg_btn_primary"
@@ -123,10 +132,10 @@
         </LinearLayout>
 
         <Button
-            android:id="@+id/registerButton"
+            android:id="@+id/backToLoginButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Don't have an account? Register"
+            android:text="Already have an account? Sign in"
             android:textSize="13sp"
             android:textColor="@color/text_secondary"
             android:background="@android:color/transparent"

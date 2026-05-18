@@ -55,6 +55,22 @@ class LoginActivity : AppCompatActivity() {
         val prefs = getSharedPreferences(PREFS_AUTH, MODE_PRIVATE)
         prefs.getString(KEY_LAST_EMAIL, null)?.let { emailEdit.setText(it) }
 
+        var passwordVisible = false
+        val showPasswordBtn = findViewById<Button>(R.id.showPasswordBtn)
+        showPasswordBtn.setOnClickListener {
+            passwordVisible = !passwordVisible
+            if (passwordVisible) {
+                passwordEdit.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                showPasswordBtn.text = "HIDE"
+                showPasswordBtn.setTextColor(getColor(R.color.accent_purple))
+            } else {
+                passwordEdit.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                showPasswordBtn.text = "SHOW"
+                showPasswordBtn.setTextColor(getColor(R.color.text_muted))
+            }
+            passwordEdit.setSelection(passwordEdit.text.length)
+        }
+
         // Long-press title → developer DB viewer
         title.setOnLongClickListener {
             showDebugDialog()
@@ -96,7 +112,10 @@ class LoginActivity : AppCompatActivity() {
             if (actionId == EditorInfo.IME_ACTION_DONE) { doLogin(); true } else false
         }
 
-        registerBtn.setOnClickListener { showRegisterDialog() }
+        registerBtn.setOnClickListener {
+            startActivity(Intent(this, RegisterActivity::class.java))
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+        }
     }
 
     // ── Validation ────────────────────────────────────────────────────────────
