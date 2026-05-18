@@ -24,14 +24,12 @@ data class ProjectInfo(
 
 object ProjectManager {
 
-    private const val DIR = "projects"
-
-    private fun projectsDir(context: Context): File {
-        return File(context.filesDir, DIR).also { it.mkdirs() }
-    }
+    private fun projectsDir(context: Context, userId: Long): File =
+        File(context.filesDir, "projects/user_$userId").also { it.mkdirs() }
 
     fun saveProject(
         context: Context,
+        userId: Long,
         name: String,
         bpm: Int,
         rows: Map<String, RowState>,
@@ -57,7 +55,7 @@ object ProjectManager {
                 }
                 put("rows", rowsJson)
             }
-            val file = File(projectsDir(context), "project_$createdAt.json")
+            val file = File(projectsDir(context, userId), "project_$createdAt.json")
             file.writeText(root.toString())
             true
         } catch (e: Exception) {
@@ -65,8 +63,8 @@ object ProjectManager {
         }
     }
 
-    fun listProjects(context: Context): List<ProjectInfo> {
-        val dir = projectsDir(context)
+    fun listProjects(context: Context, userId: Long): List<ProjectInfo> {
+        val dir = projectsDir(context, userId)
         return dir.listFiles { f -> f.extension == "json" }
             ?.mapNotNull { file ->
                 try {
@@ -85,17 +83,16 @@ object ProjectManager {
             ?: emptyList()
     }
 
-    fun loadProjectJson(context: Context, fileName: String): String? {
+    fun loadProjectJson(context: Context, userId: Long, fileName: String): String? {
         return try {
-            File(projectsDir(context), fileName).readText()
+            File(projectsDir(context, userId), fileName).readText()
         } catch (e: Exception) {
             null
         }
     }
 
-    fun deleteProject(context: Context, fileName: String): Boolean {
-        return File(projectsDir(context), fileName).delete()
-    }
+    fun deleteProject(context: Context, userId: Long, fileName: String): Boolean =
+        File(projectsDir(context, userId), fileName).delete()
 
     fun parseRows(json: String): Triple<Int, Map<String, RowState>, String> {
         val root = JSONObject(json)

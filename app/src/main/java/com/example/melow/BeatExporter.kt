@@ -24,6 +24,7 @@ object BeatExporter {
 
     fun export(
         context: Context,
+        userId: Long,
         bpm: Int,
         rows: Map<String, RowState>,
         volumes: Map<String, Float>,
@@ -36,13 +37,14 @@ object BeatExporter {
         onDone: (File?) -> Unit
     ) {
         val barList = List(repeatBars) { rows }
-        exportBars(context, bpm, swing, barList, volumes, pans, muted, soundSettings, onProgress, onDone)
+        exportBars(context, userId, bpm, swing, barList, volumes, pans, muted, soundSettings, onProgress, onDone)
     }
 
     // ── Arrangement export (list of bars, each bar = one pattern) ────────────
 
     fun exportArrangement(
         context: Context,
+        userId: Long,
         bpm: Int,
         swing: Float,
         barRows: List<Map<String, RowState>>,
@@ -53,13 +55,14 @@ object BeatExporter {
         onProgress: (Int) -> Unit,
         onDone: (File?) -> Unit
     ) {
-        exportBars(context, bpm, swing, barRows, volumes, pans, muted, soundSettings, onProgress, onDone)
+        exportBars(context, userId, bpm, swing, barRows, volumes, pans, muted, soundSettings, onProgress, onDone)
     }
 
     // ── Core mixer ───────────────────────────────────────────────────────────
 
     private fun exportBars(
         context: Context,
+        userId: Long,
         bpm: Int,
         swing: Float,
         barRows: List<Map<String, RowState>>,
@@ -82,7 +85,7 @@ object BeatExporter {
                 val uniqueResNames = barRows.flatMap { it.values.map { r -> r.soundResName } }.toSet()
                 val decoded = mutableMapOf<String, ShortArray>()
                 uniqueResNames.forEachIndexed { i, resName ->
-                    decoded[resName] = decodeToMono(context, resName) ?: ShortArray(0)
+                    decoded[resName] = decodeToMono(context, userId, resName) ?: ShortArray(0)
                     onProgress((i + 1) * 25 / uniqueResNames.size.coerceAtLeast(1))
                 }
 
@@ -146,11 +149,11 @@ object BeatExporter {
 
     // ── Audio decoding ───────────────────────────────────────────────────────
 
-    private fun decodeToMono(context: Context, resName: String): ShortArray? {
+    private fun decodeToMono(context: Context, userId: Long, resName: String): ShortArray? {
         val extractor = MediaExtractor()
         return try {
             if (resName.startsWith("custom:")) {
-                val file = CustomSoundManager.fileForResName(context, resName) ?: return null
+                val file = CustomSoundManager.fileForResName(context, userId, resName) ?: return null
                 extractor.setDataSource(file.absolutePath)
             } else {
                 val resId = builtInResIds[resName] ?: return null

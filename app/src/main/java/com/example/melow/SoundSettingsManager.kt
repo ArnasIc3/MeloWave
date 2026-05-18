@@ -12,13 +12,12 @@ data class SoundSettings(
 
 object SoundSettingsManager {
 
-    private const val FILE = "sound_settings.json"
+    private fun file(context: Context, userId: Long) =
+        File(context.filesDir, "sound_settings_$userId.json")
 
-    private fun file(context: Context) = File(context.filesDir, FILE)
-
-    fun getAll(context: Context): MutableMap<String, SoundSettings> {
+    fun getAll(context: Context, userId: Long): MutableMap<String, SoundSettings> {
         return try {
-            val json = JSONObject(file(context).readText())
+            val json = JSONObject(file(context, userId).readText())
             val map = mutableMapOf<String, SoundSettings>()
             json.keys().forEach { key ->
                 val o = json.getJSONObject(key)
@@ -34,8 +33,8 @@ object SoundSettingsManager {
         }
     }
 
-    fun update(context: Context, resName: String, settings: SoundSettings) {
-        val all = getAll(context)
+    fun update(context: Context, userId: Long, resName: String, settings: SoundSettings) {
+        val all = getAll(context, userId)
         all[resName] = settings
         val json = JSONObject()
         all.forEach { (k, s) ->
@@ -45,6 +44,6 @@ object SoundSettingsManager {
                 put("level", s.level.toDouble())
             })
         }
-        file(context).writeText(json.toString())
+        file(context, userId).writeText(json.toString())
     }
 }

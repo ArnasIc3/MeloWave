@@ -20,6 +20,8 @@ class ArrangementActivity : AppCompatActivity() {
 
     // ── State ─────────────────────────────────────────────────────────────────
 
+    private var userId = -1L
+
     private val bars       = mutableListOf<BarEntry>()
     private val loadedBars = mutableListOf<Map<String, RowState>>()
 
@@ -47,8 +49,9 @@ class ArrangementActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_arrangement)
 
+        userId = intent.getLongExtra("userId", -1L)
         setupSoundPool()
-        soundSettingsCache = SoundSettingsManager.getAll(this)
+        soundSettingsCache = SoundSettingsManager.getAll(this, userId)
 
         // Load saved arrangement
         ArrangementManager.load(this)?.let { saved ->
@@ -73,7 +76,7 @@ class ArrangementActivity : AppCompatActivity() {
               "openhat" to R.raw.openhat, "clap" to R.raw.clap).forEach { (k, id) ->
             soundMap[k] = soundPool.load(this, id, 1)
         }
-        CustomSoundManager.listSounds(this).forEach { s ->
+        CustomSoundManager.listSounds(this, userId).forEach { s ->
             s.filePath?.let { soundMap[s.resName] = soundPool.load(it, 1) }
         }
     }
@@ -144,13 +147,13 @@ class ArrangementActivity : AppCompatActivity() {
             Toast.makeText(this, "Maximum 32 bars", Toast.LENGTH_SHORT).show()
             return
         }
-        val json = ProjectManager.loadProjectJson(this, entry.patternFileName) ?: return
+        val json = ProjectManager.loadProjectJson(this, userId, entry.patternFileName) ?: return
         val (_, rows, _) = ProjectManager.parseRows(json)
 
         // Ensure all sounds in this pattern are loaded
         rows.values.forEach { rs ->
             if (!soundMap.containsKey(rs.soundResName)) {
-                CustomSoundManager.fileForResName(this, rs.soundResName)?.let { f ->
+                CustomSoundManager.fileForResName(this, userId, rs.soundResName)?.let { f ->
                     soundMap[rs.soundResName] = soundPool.load(f.absolutePath, 1)
                 }
             }
@@ -180,7 +183,7 @@ class ArrangementActivity : AppCompatActivity() {
     // ── Pattern picker ────────────────────────────────────────────────────────
 
     private fun showPatternPicker() {
-        val projects = ProjectManager.listProjects(this)
+        val projects = ProjectManager.listProjects(this, userId)
         if (projects.isEmpty()) {
             Toast.makeText(this, "No saved patterns. Create and save a beat first.", Toast.LENGTH_LONG).show()
             return
@@ -328,6 +331,7 @@ class ArrangementActivity : AppCompatActivity() {
 
         BeatExporter.exportArrangement(
             context      = this,
+            userId       = userId,
             bpm          = bpm,
             swing        = swing,
             barRows      = loadedBars.toList(),
@@ -361,7 +365,7 @@ class ArrangementActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        soundSettingsCache = SoundSettingsManager.getAll(this)
+        soundSettingsCache = SoundSettingsManager.getAll(this, userId)
     }
 
     override fun onDestroy() {

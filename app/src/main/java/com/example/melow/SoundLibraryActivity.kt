@@ -40,6 +40,8 @@ class SoundLibraryActivity : AppCompatActivity() {
     private var currentResName = ""
     private var settingsCache = mutableMapOf<String, SoundSettings>()
 
+    private var userId = -1L
+
     private var audioRecord: AudioRecord? = null
     @Volatile private var isRecording = false
     private val uiHandler = Handler(Looper.getMainLooper())
@@ -55,14 +57,14 @@ class SoundLibraryActivity : AppCompatActivity() {
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri ?: return@registerForActivityResult
-        val fileName = CustomSoundManager.importSound(this, uri)
+        val fileName = CustomSoundManager.importSound(this, userId, uri)
         if (fileName != null) {
             val newItem = SoundItem(
                 name     = fileName.substringBeforeLast('.'),
                 category = "Custom",
                 resName  = "custom:$fileName",
                 resId    = 0,
-                filePath = CustomSoundManager.customSoundsDir(this).resolve(fileName).absolutePath
+                filePath = CustomSoundManager.customSoundsDir(this, userId).resolve(fileName).absolutePath
             )
             loadCustomIntoPool(newItem)
             allSounds.add(newItem)
@@ -77,12 +79,13 @@ class SoundLibraryActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sound_library)
 
+        userId = intent.getLongExtra("userId", -1L)
         currentResName = intent.getStringExtra("currentResName") ?: ""
         val rowName = intent.getStringExtra("rowName") ?: ""
         findViewById<TextView>(R.id.editingRowLabel).text =
             if (rowName.isNotEmpty()) "Editing: $rowName" else ""
 
-        settingsCache = SoundSettingsManager.getAll(this)
+        settingsCache = SoundSettingsManager.getAll(this, userId)
         setupSoundPool()
         buildSoundList()
 
@@ -130,7 +133,7 @@ class SoundLibraryActivity : AppCompatActivity() {
             val saved = settingsCache[sound.resName]
             allSounds.add(if (!saved?.displayName.isNullOrEmpty()) sound.copy(name = saved!!.displayName) else sound)
         }
-        val custom = CustomSoundManager.listSounds(this)
+        val custom = CustomSoundManager.listSounds(this, userId)
         custom.forEach { sound ->
             loadCustomIntoPool(sound)
             val saved = settingsCache[sound.resName]
@@ -270,7 +273,7 @@ class SoundLibraryActivity : AppCompatActivity() {
             .setPositiveButton("Save") { _, _ ->
                 val newName = nameEdit.text.toString().trim().ifEmpty { sound.name }
                 val newSettings = SoundSettings(displayName = newName, pitch = currentPitch, level = currentLevel)
-                SoundSettingsManager.update(this, sound.resName, newSettings)
+                SoundSettingsManager.update(this, userId, sound.resName, newSettings)
                 settingsCache[sound.resName] = newSettings
                 val idx = allSounds.indexOfFirst { it.resName == sound.resName }
                 if (idx >= 0) adapter.updateAt(idx, sound.copy(name = newName))
@@ -285,7 +288,7 @@ class SoundLibraryActivity : AppCompatActivity() {
             .setMessage("This will remove the custom sound file.")
             .setPositiveButton("Delete") { _, _ ->
                 val fileName = sound.resName.removePrefix("custom:")
-                CustomSoundManager.deleteSound(this, fileName)
+                CustomSoundManager.deleteSound(this, userId, fileName)
                 adapter.removeAt(position)
             }
             .setNegativeButton("Cancel", null)
@@ -373,7 +376,7 @@ class SoundLibraryActivity : AppCompatActivity() {
             audioRecord = null
 
             val pcm = synchronized(pcmOut) { pcmOut.toByteArray() }
-            val fileName = CustomSoundManager.saveRecording(this, pcm, sampleRate)
+            val fileName = CustomSoundManager.saveRecording(this, userId, pcm, sampleRate)
             uiHandler.post {
                 if (fileName != null) {
                     val newItem = SoundItem(
@@ -381,7 +384,7 @@ class SoundLibraryActivity : AppCompatActivity() {
                         category = "Custom",
                         resName  = "custom:$fileName",
                         resId    = 0,
-                        filePath = CustomSoundManager.customSoundsDir(this).resolve(fileName).absolutePath
+                        filePath = CustomSoundManager.customSoundsDir(this, userId).resolve(fileName).absolutePath
                     )
                     loadCustomIntoPool(newItem)
                     allSounds.add(newItem)

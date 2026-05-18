@@ -83,6 +83,8 @@ class SecondActivity : AppCompatActivity() {
         "clap"    to "Clap"
     )
 
+    private var userId = -1L
+
     private var loadingOverlay: View? = null
     @Volatile private var loadedSoundCount = 0
 
@@ -107,7 +109,7 @@ class SecondActivity : AppCompatActivity() {
             val resName = result.data?.getStringExtra("soundResName") ?: return@registerForActivityResult
             // If custom sound not yet in map (uploaded during this session), load it now
             if (!soundMap.containsKey(resName)) {
-                CustomSoundManager.fileForResName(this, resName)?.let { file ->
+                CustomSoundManager.fileForResName(this, userId, resName)?.let { file ->
                     soundMap[resName] = soundPool.load(file.absolutePath, 1)
                 }
             }
@@ -125,12 +127,12 @@ class SecondActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_second)
+        userId = intent.getLongExtra("userId", -1L)
         showLoadingOverlay()
 
         setupSoundPool()
         initAudioEffects()
-        soundSettingsCache = SoundSettingsManager.getAll(this)
-        // Load data into arrays BEFORE building UI so buttons reflect saved state
+        soundSettingsCache = SoundSettingsManager.getAll(this, userId)
         intent.getStringExtra("projectJson")?.let { loadProjectData(it) }
         loadedProjectName = intent.getStringExtra("projectName")
         setupUI()
@@ -185,7 +187,7 @@ class SecondActivity : AppCompatActivity() {
         openHatInstrument = openHatSound
         clapInstrument    = clapSound
 
-        CustomSoundManager.listSounds(this).forEach { sound ->
+        CustomSoundManager.listSounds(this, userId).forEach { sound ->
             sound.filePath?.let { path ->
                 soundMap[sound.resName] = soundPool.load(path, 1)
             }
@@ -299,6 +301,7 @@ class SecondActivity : AppCompatActivity() {
                 val intent = Intent(this, SoundLibraryActivity::class.java)
                 intent.putExtra("rowName", rowKey.uppercase())
                 intent.putExtra("currentResName", currentRes)
+                intent.putExtra("userId", userId)
                 soundPickerLauncher.launch(intent)
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             }
@@ -570,7 +573,7 @@ class SecondActivity : AppCompatActivity() {
                     "openHat" to RowState(openHatSteps, openHatStepsCount, openHatSoundResName, pans["openHat"]!!),
                     "clap"    to RowState(clapSteps,    clapStepsCount,    clapSoundResName,    pans["clap"]!!)
                 )
-                val saved = ProjectManager.saveProject(this, name, bpm, rows, swing)
+                val saved = ProjectManager.saveProject(this, userId, name, bpm, rows, swing)
                 Toast.makeText(
                     this,
                     if (saved) "\"$name\" saved!" else "Save failed",
@@ -626,6 +629,7 @@ class SecondActivity : AppCompatActivity() {
 
         BeatExporter.export(
             context      = this,
+            userId       = userId,
             bpm          = bpm,
             rows         = rows,
             volumes      = volumes.toMap(),
@@ -819,7 +823,7 @@ class SecondActivity : AppCompatActivity() {
     @Suppress("OVERRIDE_DEPRECATION")
     override fun onResume() {
         super.onResume()
-        soundSettingsCache = SoundSettingsManager.getAll(this)
+        soundSettingsCache = SoundSettingsManager.getAll(this, userId)
     }
 
     @Suppress("OVERRIDE_DEPRECATION")

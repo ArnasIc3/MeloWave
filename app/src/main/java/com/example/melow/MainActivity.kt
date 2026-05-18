@@ -13,13 +13,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Show logged-in username
         val username = intent.getStringExtra("username") ?: ""
+        val userId   = intent.getLongExtra("userId", -1L)
+
         if (username.isNotEmpty()) {
             findViewById<TextView>(R.id.usernameLabel).text = "Hi, $username"
         }
 
-        // Logout
         findViewById<Button>(R.id.logoutButton).setOnClickListener {
             getSharedPreferences(LoginActivity.PREFS_AUTH, MODE_PRIVATE)
                 .edit().remove(LoginActivity.KEY_REMEMBERED).apply()
@@ -45,28 +45,28 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.createButton).setOnClickListener {
             animateButton(it as Button) {
-                startActivity(Intent(this, SecondActivity::class.java))
+                startActivity(Intent(this, SecondActivity::class.java).putExtra("userId", userId))
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             }
         }
 
         findViewById<Button>(R.id.loadButton).setOnClickListener {
             animateButton(it as Button) {
-                startActivity(Intent(this, ProjectsActivity::class.java))
+                startActivity(Intent(this, ProjectsActivity::class.java).putExtra("userId", userId))
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             }
         }
 
         findViewById<Button>(R.id.arrangementButton).setOnClickListener {
             animateButton(it as Button) {
-                startActivity(Intent(this, ArrangementActivity::class.java))
+                startActivity(Intent(this, ArrangementActivity::class.java).putExtra("userId", userId))
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             }
         }
 
         findViewById<Button>(R.id.soundLibraryButton).setOnClickListener {
             animateButton(it as Button) {
-                startActivity(Intent(this, SoundLibraryActivity::class.java))
+                startActivity(Intent(this, SoundLibraryActivity::class.java).putExtra("userId", userId))
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             }
         }

@@ -17,10 +17,11 @@ import java.io.File
 class LoginActivity : AppCompatActivity() {
 
     companion object {
-        const val PREFS_AUTH     = "auth"
-        const val KEY_REMEMBERED = "remembered_username"
-        const val KEY_REM_EMAIL  = "remembered_email"
-        const val KEY_LAST_EMAIL = "last_email"
+        const val PREFS_AUTH       = "auth"
+        const val KEY_REMEMBERED   = "remembered_username"
+        const val KEY_REM_EMAIL    = "remembered_email"
+        const val KEY_REM_USER_ID  = "remembered_user_id"
+        const val KEY_LAST_EMAIL   = "last_email"
     }
 
     private lateinit var db: UserDbHelper
@@ -33,7 +34,8 @@ class LoginActivity : AppCompatActivity() {
         val prefs      = getSharedPreferences(PREFS_AUTH, MODE_PRIVATE)
         val remembered = prefs.getString(KEY_REMEMBERED, null)
         if (!remembered.isNullOrEmpty()) {
-            goToMain(remembered)
+            val userId = prefs.getLong(KEY_REM_USER_ID, -1L)
+            goToMain(remembered, userId)
             return
         }
 
@@ -75,11 +77,12 @@ class LoginActivity : AppCompatActivity() {
                             .apply()
                         if (rememberBox.isChecked) {
                             getSharedPreferences(PREFS_AUTH, MODE_PRIVATE).edit()
-                                .putString(KEY_REMEMBERED, result.user.username)
-                                .putString(KEY_REM_EMAIL,  result.user.email)
+                                .putString(KEY_REMEMBERED,  result.user.username)
+                                .putString(KEY_REM_EMAIL,   result.user.email)
+                                .putLong(KEY_REM_USER_ID,   result.user.id)
                                 .apply()
                         }
-                        goToMain(result.user.username)
+                        goToMain(result.user.username, result.user.id)
                     }
                     UserDbHelper.LoginResult.NotFound     -> showError(errorLabel, "No account found with this email")
                     UserDbHelper.LoginResult.WrongPassword -> showError(errorLabel, "Incorrect password")
@@ -252,10 +255,10 @@ class LoginActivity : AppCompatActivity() {
 
     // ── Navigation ────────────────────────────────────────────────────────────
 
-    private fun goToMain(username: String) {
+    private fun goToMain(username: String, userId: Long) {
         startActivity(Intent(this, MainActivity::class.java).apply {
             putExtra("username", username)
-            // Clear back stack — back button from MainActivity cannot return to Login
+            putExtra("userId", userId)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         })
         overridePendingTransition(R.anim.fade_in, R.anim.fade_out)

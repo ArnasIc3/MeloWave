@@ -16,10 +16,12 @@ class ProjectsActivity : AppCompatActivity() {
     private lateinit var emptyState: LinearLayout
     private lateinit var adapter: ProjectAdapter
     private val projects = mutableListOf<ProjectInfo>()
+    private var userId = -1L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_projects)
+        userId = intent.getLongExtra("userId", -1L)
 
         recycler = findViewById(R.id.projectsRecycler)
         emptyState = findViewById(R.id.emptyState)
@@ -27,10 +29,11 @@ class ProjectsActivity : AppCompatActivity() {
         adapter = ProjectAdapter(
             projects,
             onLoad = { project ->
-                val json = ProjectManager.loadProjectJson(this, project.fileName) ?: return@ProjectAdapter
+                val json = ProjectManager.loadProjectJson(this, userId, project.fileName) ?: return@ProjectAdapter
                 val intent = Intent(this, SecondActivity::class.java)
                 intent.putExtra("projectJson", json)
                 intent.putExtra("projectName", project.name)
+                intent.putExtra("userId", userId)
                 startActivity(intent)
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             },
@@ -39,7 +42,7 @@ class ProjectsActivity : AppCompatActivity() {
                     .setTitle("Delete \"${project.name}\"?")
                     .setMessage("This cannot be undone.")
                     .setPositiveButton("Delete") { _, _ ->
-                        ProjectManager.deleteProject(this, project.fileName)
+                        ProjectManager.deleteProject(this, userId, project.fileName)
                         adapter.removeAt(position)
                         updateEmptyState()
                     }
@@ -66,7 +69,7 @@ class ProjectsActivity : AppCompatActivity() {
 
     private fun loadProjects() {
         projects.clear()
-        projects.addAll(ProjectManager.listProjects(this))
+        projects.addAll(ProjectManager.listProjects(this, userId))
         adapter.notifyDataSetChanged()
         updateEmptyState()
     }
