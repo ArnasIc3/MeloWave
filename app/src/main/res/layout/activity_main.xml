@@ -39,6 +39,7 @@
             android:textColor="@color/text_secondary"
             android:background="@drawable/bg_btn_secondary"
             android:stateListAnimator="@null"
+            android:soundEffectsEnabled="false"
             android:paddingStart="14dp"
             android:paddingEnd="14dp"/>
 
@@ -98,7 +99,8 @@
             android:textSize="17sp"
             android:textColor="@color/text_on_primary"
             android:background="@drawable/bg_btn_primary"
-            android:stateListAnimator="@null"/>
+            android:stateListAnimator="@null"
+            android:soundEffectsEnabled="false"/>
 
         <Button
             android:id="@+id/loadButton"
@@ -109,6 +111,7 @@
             android:textColor="@color/text_primary"
             android:background="@drawable/bg_btn_secondary"
             android:stateListAnimator="@null"
+            android:soundEffectsEnabled="false"
             android:layout_marginTop="16dp"/>
 
         <Button
@@ -120,6 +123,7 @@
             android:textColor="@color/text_primary"
             android:background="@drawable/bg_btn_secondary"
             android:stateListAnimator="@null"
+            android:soundEffectsEnabled="false"
             android:layout_marginTop="16dp"/>
 
         <Button
@@ -130,6 +134,7 @@
             android:textSize="15sp"
             android:textColor="@color/text_secondary"
             android:background="@android:color/transparent"
+            android:soundEffectsEnabled="false"
             android:layout_marginTop="4dp"/>
 
     </LinearLayout>

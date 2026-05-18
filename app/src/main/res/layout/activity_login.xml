@@ -96,7 +96,8 @@
                 android:textSize="15sp"
                 android:textColor="@color/text_on_primary"
                 android:background="@drawable/bg_btn_primary"
-                android:stateListAnimator="@null"/>
+                android:stateListAnimator="@null"
+                android:soundEffectsEnabled="false"/>
 
         </LinearLayout>
 
@@ -108,7 +109,8 @@
             android:textSize="13sp"
             android:textColor="@color/text_secondary"
             android:background="@android:color/transparent"
-            android:stateListAnimator="@null"/>
+            android:stateListAnimator="@null"
+            android:soundEffectsEnabled="false"/>
 
     </LinearLayout>
 
