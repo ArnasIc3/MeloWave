@@ -13,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -84,6 +85,7 @@ class SecondActivity : AppCompatActivity() {
     )
 
     private var userId = -1L
+    private var hasUnsavedChanges = false
 
     private var loadingOverlay: View? = null
     @Volatile private var loadedSoundCount = 0
@@ -128,6 +130,11 @@ class SecondActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_second)
         userId = intent.getLongExtra("userId", -1L)
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() { handleBack() }
+        })
+
         showLoadingOverlay()
 
         setupSoundPool()
@@ -264,6 +271,7 @@ class SecondActivity : AppCompatActivity() {
                 bpm -= 5
                 stepDuration = calcStepDuration(bpm)
                 bpmDisplay.text = bpm.toString()
+                hasUnsavedChanges = true
             }
         }
         findViewById<Button>(R.id.bpmPlus).setOnClickListener {
@@ -271,6 +279,7 @@ class SecondActivity : AppCompatActivity() {
                 bpm += 5
                 stepDuration = calcStepDuration(bpm)
                 bpmDisplay.text = bpm.toString()
+                hasUnsavedChanges = true
             }
         }
 
@@ -342,8 +351,7 @@ class SecondActivity : AppCompatActivity() {
 
         // Back button
         findViewById<Button>(R.id.backButton).setOnClickListener {
-            finish()
-            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+            handleBack()
         }
 
         setupMuteAndVolume()
@@ -505,6 +513,7 @@ class SecondActivity : AppCompatActivity() {
                     if (newState) R.drawable.btn_step_active else R.drawable.btn_step_normal
                 )
                 btn.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                hasUnsavedChanges = true
                 btn.animate().scaleX(0.82f).scaleY(0.82f).setDuration(70)
                     .withEndAction { btn.animate().scaleX(1f).scaleY(1f).setDuration(70).start() }
                     .start()
@@ -579,7 +588,10 @@ class SecondActivity : AppCompatActivity() {
                     if (saved) "\"$name\" saved!" else "Save failed",
                     Toast.LENGTH_SHORT
                 ).show()
-                if (saved) loadedProjectName = name
+                if (saved) {
+                    loadedProjectName = name
+                    hasUnsavedChanges = false
+                }
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -826,9 +838,21 @@ class SecondActivity : AppCompatActivity() {
         soundSettingsCache = SoundSettingsManager.getAll(this, userId)
     }
 
-    @Suppress("OVERRIDE_DEPRECATION")
-    override fun onBackPressed() {
-        super.onBackPressed()
-        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+    private fun handleBack() {
+        if (!hasUnsavedChanges) {
+            finish()
+            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Unsaved changes")
+            .setMessage("Leave without saving?")
+            .setPositiveButton("Leave") { _, _ ->
+                finish()
+                overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+            }
+            .setNegativeButton("Stay", null)
+            .show()
     }
+
 }

@@ -390,10 +390,11 @@ class ArrangementActivity : AppCompatActivity() {
     ) : RecyclerView.Adapter<BarSlotAdapter.VH>() {
 
         inner class VH(view: View) : RecyclerView.ViewHolder(view) {
-            val barNumber:   TextView = view.findViewById(R.id.barNumber)
-            val patternName: TextView = view.findViewById(R.id.patternName)
-            val patternMeta: TextView = view.findViewById(R.id.patternMeta)
-            val removeBtn:   Button   = view.findViewById(R.id.removeBarBtn)
+            val barNumber:        TextView    = view.findViewById(R.id.barNumber)
+            val patternName:      TextView    = view.findViewById(R.id.patternName)
+            val patternMeta:      TextView    = view.findViewById(R.id.patternMeta)
+            val removeBtn:        Button      = view.findViewById(R.id.removeBarBtn)
+            val stepPreview:      LinearLayout = view.findViewById(R.id.stepPreviewContainer)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = VH(
@@ -405,21 +406,58 @@ class ArrangementActivity : AppCompatActivity() {
             holder.barNumber.text   = "${position + 1}"
             holder.patternName.text = entry.patternName
 
-            // Show BPM from loaded bar if available
             val rows = loadedBars.getOrNull(position)
             holder.patternMeta.text = if (rows != null) {
                 val stepCounts = rows.values.map { it.count }.distinct()
-                val stepsStr   = if (stepCounts.size == 1) "${stepCounts[0]} steps" else "mixed steps"
-                stepsStr
+                if (stepCounts.size == 1) "${stepCounts[0]} steps" else "mixed steps"
             } else ""
 
-            // Highlight currently playing bar
-            val isPlaying = this@ArrangementActivity.isPlaying && currentBar == position
-            holder.itemView.alpha = if (isPlaying) 1f else 0.85f
+            if (rows != null) buildStepPreview(holder.stepPreview, rows)
+            else holder.stepPreview.visibility = View.GONE
+
+            val playing = this@ArrangementActivity.isPlaying && currentBar == position
+            holder.itemView.alpha = if (playing) 1f else 0.85f
 
             holder.removeBtn.setOnClickListener { onRemove(holder.bindingAdapterPosition) }
         }
 
         override fun getItemCount() = items.size
+
+        private fun buildStepPreview(container: LinearLayout, rows: Map<String, RowState>) {
+            container.removeAllViews()
+            container.visibility = View.VISIBLE
+
+            val dp = resources.displayMetrics.density
+            val rowHeight = (4 * dp).toInt()
+            val gap       = (1 * dp).toInt()
+
+            val instruments = listOf(
+                "kick"    to getColor(R.color.accent_purple),
+                "snare"   to getColor(R.color.accent_cyan),
+                "hat"     to getColor(R.color.accent_amber),
+                "openHat" to getColor(R.color.accent_green),
+                "clap"    to getColor(R.color.accent_purple)
+            )
+
+            val inactiveColor = getColor(R.color.step_inactive)
+
+            instruments.forEach { (key, activeColor) ->
+                val state = rows[key] ?: return@forEach
+                val row = LinearLayout(this@ArrangementActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, rowHeight
+                    ).also { it.bottomMargin = gap }
+                }
+                for (i in 0 until state.count) {
+                    row.addView(View(this@ArrangementActivity).apply {
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+                            .also { it.marginEnd = gap }
+                        setBackgroundColor(if (state.steps[i]) activeColor else inactiveColor)
+                    })
+                }
+                container.addView(row)
+            }
+        }
     }
 }
