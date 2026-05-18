@@ -8,6 +8,7 @@ import android.media.audiofx.PresetReverb
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -500,6 +501,7 @@ class SecondActivity : AppCompatActivity() {
                 btn.setBackgroundResource(
                     if (newState) R.drawable.btn_step_active else R.drawable.btn_step_normal
                 )
+                btn.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                 btn.animate().scaleX(0.82f).scaleY(0.82f).setDuration(70)
                     .withEndAction { btn.animate().scaleX(1f).scaleY(1f).setDuration(70).start() }
                     .start()

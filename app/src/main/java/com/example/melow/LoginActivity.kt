@@ -3,9 +3,12 @@ package com.example.melow
 import android.content.Intent
 import android.os.Bundle
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.text.InputType
 import android.util.Patterns
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -17,6 +20,7 @@ class LoginActivity : AppCompatActivity() {
         const val PREFS_AUTH     = "auth"
         const val KEY_REMEMBERED = "remembered_username"
         const val KEY_REM_EMAIL  = "remembered_email"
+        const val KEY_LAST_EMAIL = "last_email"
     }
 
     private lateinit var db: UserDbHelper
@@ -46,36 +50,47 @@ class LoginActivity : AppCompatActivity() {
         val registerBtn  = findViewById<Button>(R.id.registerButton)
         val title        = findViewById<TextView>(R.id.appTitle)
 
+        val prefs = getSharedPreferences(PREFS_AUTH, MODE_PRIVATE)
+        prefs.getString(KEY_LAST_EMAIL, null)?.let { emailEdit.setText(it) }
+
         // Long-press title → developer DB viewer
         title.setOnLongClickListener {
             showDebugDialog()
             true
         }
 
-        loginBtn.setOnClickListener {
+        val doLogin = {
             val email    = emailEdit.text.toString().trim()
             val password = passwordEdit.text.toString()
 
             val error = validateLoginInput(email, password)
             if (error != null) {
                 showError(errorLabel, error)
-                return@setOnClickListener
-            }
-
-            when (val result = db.login(email, password)) {
-                is UserDbHelper.LoginResult.Success -> {
-                    hideError(errorLabel)
-                    if (rememberBox.isChecked) {
+            } else {
+                when (val result = db.login(email, password)) {
+                    is UserDbHelper.LoginResult.Success -> {
+                        hideError(errorLabel)
                         getSharedPreferences(PREFS_AUTH, MODE_PRIVATE).edit()
-                            .putString(KEY_REMEMBERED, result.user.username)
-                            .putString(KEY_REM_EMAIL,  result.user.email)
+                            .putString(KEY_LAST_EMAIL, email)
                             .apply()
+                        if (rememberBox.isChecked) {
+                            getSharedPreferences(PREFS_AUTH, MODE_PRIVATE).edit()
+                                .putString(KEY_REMEMBERED, result.user.username)
+                                .putString(KEY_REM_EMAIL,  result.user.email)
+                                .apply()
+                        }
+                        goToMain(result.user.username)
                     }
-                    goToMain(result.user.username)
+                    UserDbHelper.LoginResult.NotFound     -> showError(errorLabel, "No account found with this email")
+                    UserDbHelper.LoginResult.WrongPassword -> showError(errorLabel, "Incorrect password")
                 }
-                UserDbHelper.LoginResult.NotFound    -> showError(errorLabel, "No account found with this email")
-                UserDbHelper.LoginResult.WrongPassword -> showError(errorLabel, "Incorrect password")
             }
+        }
+
+        loginBtn.setOnClickListener { doLogin() }
+
+        passwordEdit.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) { doLogin(); true } else false
         }
 
         registerBtn.setOnClickListener { showRegisterDialog() }
@@ -251,6 +266,7 @@ class LoginActivity : AppCompatActivity() {
     private fun showError(tv: TextView, msg: String) {
         tv.text = msg
         tv.visibility = View.VISIBLE
+        Handler(Looper.getMainLooper()).postDelayed({ hideError(tv) }, 3000)
     }
 
     private fun hideError(tv: TextView) {
