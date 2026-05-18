@@ -5,6 +5,8 @@ import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.net.Uri
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
 
@@ -20,7 +22,7 @@ object BeatExporter {
         "clap"    to R.raw.clap
     )
 
-    // ── Single-pattern export (4 bars loop) ──────────────────────────────────
+    // ── Public async API (used by activities directly) ────────────────────────
 
     fun export(
         context: Context,
@@ -36,11 +38,11 @@ object BeatExporter {
         onProgress: (Int) -> Unit,
         onDone: (File?) -> Unit
     ) {
-        val barList = List(repeatBars) { rows }
-        exportBars(context, userId, bpm, swing, barList, volumes, pans, muted, soundSettings, onProgress, onDone)
+        Thread {
+            onDone(mix(context, userId, bpm, swing, List(repeatBars) { rows },
+                volumes, pans, muted, soundSettings, onProgress))
+        }.start()
     }
-
-    // ── Arrangement export (list of bars, each bar = one pattern) ────────────
 
     fun exportArrangement(
         context: Context,
@@ -55,12 +57,15 @@ object BeatExporter {
         onProgress: (Int) -> Unit,
         onDone: (File?) -> Unit
     ) {
-        exportBars(context, userId, bpm, swing, barRows, volumes, pans, muted, soundSettings, onProgress, onDone)
+        Thread {
+            onDone(mix(context, userId, bpm, swing, barRows,
+                volumes, pans, muted, soundSettings, onProgress))
+        }.start()
     }
 
-    // ── Core mixer ───────────────────────────────────────────────────────────
+    // ── Public sync API (called by BeatExportWorker on its background thread) ─
 
-    private fun exportBars(
+    fun exportSync(
         context: Context,
         userId: Long,
         bpm: Int,
@@ -70,84 +75,144 @@ object BeatExporter {
         pans: Map<String, Float>,
         muted: Map<String, Boolean>,
         soundSettings: Map<String, SoundSettings>,
-        onProgress: (Int) -> Unit,
-        onDone: (File?) -> Unit
-    ) {
-        Thread {
-            try {
-                val stepMs        = 60_000.0 / bpm / 4
-                val samplesPerStep = (stepMs * SAMPLE_RATE / 1000).toInt()
-                val totalSteps    = 16 * barRows.size
-                val totalSamples  = samplesPerStep * totalSteps
-                val mix           = FloatArray(totalSamples * 2)
+        onProgress: (Int) -> Unit = {}
+    ): File? = mix(context, userId, bpm, swing, barRows, volumes, pans, muted, soundSettings, onProgress)
 
-                // Decode all unique sounds
-                val uniqueResNames = barRows.flatMap { it.values.map { r -> r.soundResName } }.toSet()
-                val decoded = mutableMapOf<String, ShortArray>()
-                uniqueResNames.forEachIndexed { i, resName ->
-                    decoded[resName] = decodeToMono(context, userId, resName) ?: ShortArray(0)
-                    onProgress((i + 1) * 25 / uniqueResNames.size.coerceAtLeast(1))
-                }
+    // ── Params serialisation (write before enqueuing WorkManager job) ─────────
 
-                // Mix each bar
-                barRows.forEachIndexed { barIdx, rows ->
-                    for (s in 0 until 16) {
-                        val globalStep   = barIdx * 16 + s
-                        val sampleOffset = stepStartSamples(globalStep, samplesPerStep, swing)
-
-                        rows.forEach { (key, rowState) ->
-                            if (muted[key] == true) return@forEach
-                            val count = rowState.count
-                            if (count == 8 && s % 2 != 0) return@forEach
-                            val resolvedIdx = if (count == 8) s / 2 else s
-                            if (!rowState.steps[resolvedIdx]) return@forEach
-
-                            val pcm = decoded[rowState.soundResName]
-                                ?.takeIf { it.isNotEmpty() } ?: return@forEach
-                            val settings  = soundSettings[rowState.soundResName] ?: SoundSettings()
-                            val vol       = ((volumes[key] ?: 1f) * settings.level).coerceIn(0f, 1f)
-                            val pan       = (pans[key] ?: 0f).coerceIn(-1f, 1f)
-                            val leftGain  = vol * if (pan >= 0f) 1f else 1f + pan
-                            val rightGain = vol * if (pan <= 0f) 1f else 1f - pan
-                            val pitched   = applyPitch(pcm, settings.pitch)
-
-                            for (i in pitched.indices) {
-                                val dst = sampleOffset + i
-                                if (dst >= totalSamples) break
-                                val sample = pitched[i].toFloat() / Short.MAX_VALUE
-                                mix[dst * 2]     += sample * leftGain
-                                mix[dst * 2 + 1] += sample * rightGain
-                            }
-                        }
-                    }
-                    onProgress(25 + (barIdx + 1) * 65 / barRows.size.coerceAtLeast(1))
-                }
-
-                val peak  = mix.maxOfOrNull { kotlin.math.abs(it) }?.coerceAtLeast(1f) ?: 1f
-                val scale = if (peak > 0.99f) 0.99f / peak else 1f
-                val pcmOut = ShortArray(mix.size) { i ->
-                    (mix[i] * scale * Short.MAX_VALUE)
-                        .toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
-                }
-
-                val outDir  = File(context.cacheDir, "exports").also { it.mkdirs() }
-                val outFile = File(outDir, "melowave_${System.currentTimeMillis()}.wav")
-                writeWav(outFile, pcmOut, SAMPLE_RATE, 2)
-
-                onProgress(100)
-                onDone(outFile)
-            } catch (_: Exception) {
-                onDone(null)
+    fun writeParamsFile(
+        context: Context,
+        userId: Long,
+        bpm: Int,
+        swing: Float,
+        barRows: List<Map<String, RowState>>,
+        volumes: Map<String, Float>,
+        pans: Map<String, Float>,
+        muted: Map<String, Boolean>,
+        soundSettings: Map<String, SoundSettings>
+    ): File {
+        val barsJson = JSONArray()
+        barRows.forEach { rows ->
+            val rowsObj = JSONObject()
+            rows.forEach { (key, state) ->
+                val steps = JSONArray().also { arr -> state.steps.take(state.count).forEach { arr.put(it) } }
+                rowsObj.put(key, JSONObject().apply {
+                    put("steps", steps)
+                    put("count", state.count)
+                    put("soundResName", state.soundResName)
+                    put("pan", state.pan.toDouble())
+                })
             }
-        }.start()
+            barsJson.put(rowsObj)
+        }
+
+        fun floatMap(m: Map<String, Float>) = JSONObject().also { o -> m.forEach { (k, v) -> o.put(k, v.toDouble()) } }
+        fun boolMap(m: Map<String, Boolean>) = JSONObject().also { o -> m.forEach { (k, v) -> o.put(k, v) } }
+        fun settingsMap(m: Map<String, SoundSettings>) = JSONObject().also { o ->
+            m.forEach { (k, s) -> o.put(k, JSONObject().apply {
+                put("displayName", s.displayName)
+                put("pitch", s.pitch.toDouble())
+                put("level", s.level.toDouble())
+            }) }
+        }
+
+        val json = JSONObject().apply {
+            put("userId", userId)
+            put("bpm", bpm)
+            put("swing", swing.toDouble())
+            put("bars", barsJson)
+            put("volumes", floatMap(volumes))
+            put("pans", floatMap(pans))
+            put("muted", boolMap(muted))
+            put("soundSettings", settingsMap(soundSettings))
+        }
+
+        val file = File(context.cacheDir, "export_params_${System.currentTimeMillis()}.json")
+        file.writeText(json.toString())
+        return file
     }
 
-    // Swing-aware sample offset: odd steps are delayed by swing * stepDuration
+    // ── Core mixer (runs on whatever thread calls it) ─────────────────────────
+
+    private fun mix(
+        context: Context,
+        userId: Long,
+        bpm: Int,
+        swing: Float,
+        barRows: List<Map<String, RowState>>,
+        volumes: Map<String, Float>,
+        pans: Map<String, Float>,
+        muted: Map<String, Boolean>,
+        soundSettings: Map<String, SoundSettings>,
+        onProgress: (Int) -> Unit
+    ): File? {
+        return try {
+            val stepMs         = 60_000.0 / bpm / 4
+            val samplesPerStep = (stepMs * SAMPLE_RATE / 1000).toInt()
+            val totalSamples   = samplesPerStep * 16 * barRows.size
+            val mix            = FloatArray(totalSamples * 2)
+
+            val uniqueResNames = barRows.flatMap { it.values.map { r -> r.soundResName } }.toSet()
+            val decoded = mutableMapOf<String, ShortArray>()
+            uniqueResNames.forEachIndexed { i, resName ->
+                decoded[resName] = decodeToMono(context, userId, resName) ?: ShortArray(0)
+                onProgress((i + 1) * 25 / uniqueResNames.size.coerceAtLeast(1))
+            }
+
+            barRows.forEachIndexed { barIdx, rows ->
+                for (s in 0 until 16) {
+                    val globalStep   = barIdx * 16 + s
+                    val sampleOffset = stepStartSamples(globalStep, samplesPerStep, swing)
+
+                    rows.forEach { (key, rowState) ->
+                        if (muted[key] == true) return@forEach
+                        val count = rowState.count
+                        if (count == 8 && s % 2 != 0) return@forEach
+                        val resolvedIdx = if (count == 8) s / 2 else s
+                        if (!rowState.steps[resolvedIdx]) return@forEach
+
+                        val pcm      = decoded[rowState.soundResName]?.takeIf { it.isNotEmpty() } ?: return@forEach
+                        val settings = soundSettings[rowState.soundResName] ?: SoundSettings()
+                        val vol      = ((volumes[key] ?: 1f) * settings.level).coerceIn(0f, 1f)
+                        val pan      = (pans[key] ?: 0f).coerceIn(-1f, 1f)
+                        val leftGain  = vol * if (pan >= 0f) 1f else 1f + pan
+                        val rightGain = vol * if (pan <= 0f) 1f else 1f - pan
+                        val pitched  = applyPitch(pcm, settings.pitch)
+
+                        for (i in pitched.indices) {
+                            val dst = sampleOffset + i
+                            if (dst >= totalSamples) break
+                            val sample = pitched[i].toFloat() / Short.MAX_VALUE
+                            mix[dst * 2]     += sample * leftGain
+                            mix[dst * 2 + 1] += sample * rightGain
+                        }
+                    }
+                }
+                onProgress(25 + (barIdx + 1) * 65 / barRows.size.coerceAtLeast(1))
+            }
+
+            val peak  = mix.maxOfOrNull { kotlin.math.abs(it) }?.coerceAtLeast(1f) ?: 1f
+            val scale = if (peak > 0.99f) 0.99f / peak else 1f
+            val pcmOut = ShortArray(mix.size) { i ->
+                (mix[i] * scale * Short.MAX_VALUE)
+                    .toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+            }
+
+            val outFile = File(File(context.cacheDir, "exports").also { it.mkdirs() },
+                "melowave_${System.currentTimeMillis()}.wav")
+            writeWav(outFile, pcmOut, SAMPLE_RATE, 2)
+            onProgress(100)
+            outFile
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
     private fun stepStartSamples(step: Int, samplesPerStep: Int, swing: Float): Int =
         if (step % 2 == 0) step * samplesPerStep
         else (step - 1) * samplesPerStep + (samplesPerStep * (1f + swing)).toInt()
-
-    // ── Audio decoding ───────────────────────────────────────────────────────
 
     private fun decodeToMono(context: Context, userId: Long, resName: String): ShortArray? {
         val extractor = MediaExtractor()
@@ -162,8 +227,7 @@ object BeatExporter {
             }
 
             val trackIdx = (0 until extractor.trackCount).firstOrNull { i ->
-                extractor.getTrackFormat(i).getString(MediaFormat.KEY_MIME)
-                    ?.startsWith("audio/") == true
+                extractor.getTrackFormat(i).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
             } ?: return null
 
             extractor.selectTrack(trackIdx)
@@ -176,10 +240,9 @@ object BeatExporter {
             codec.configure(format, null, null, 0)
             codec.start()
 
-            val rawPcm  = ByteArrayOutputStream()
-            val info    = MediaCodec.BufferInfo()
-            var inDone  = false
-            var outDone = false
+            val rawPcm = ByteArrayOutputStream()
+            val info   = MediaCodec.BufferInfo()
+            var inDone = false; var outDone = false
 
             while (!outDone) {
                 if (!inDone) {

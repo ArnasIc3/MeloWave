@@ -13,12 +13,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.core.content.ContextCompat
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 
 class SecondActivity : AppCompatActivity() {
 
@@ -346,7 +353,7 @@ class SecondActivity : AppCompatActivity() {
 
         // Export & Share button
         findViewById<Button>(R.id.exportButton).setOnClickListener {
-            showExportDialog()
+            startExport()
         }
 
         // Back button
@@ -597,40 +604,21 @@ class SecondActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showExportDialog() {
-        val dp       = resources.displayMetrics.density
-        val layout   = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity     = android.view.Gravity.CENTER
-            setPadding((24 * dp).toInt(), (24 * dp).toInt(), (24 * dp).toInt(), (16 * dp).toInt())
-            setBackgroundColor(getColor(R.color.bg_surface))
-        }
+    private val notifPermLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { enqueueExport() }
 
-        val statusText = TextView(this).apply {
-            text      = "Rendering beat..."
-            textSize  = 16f
-            gravity   = android.view.Gravity.CENTER
-            setTextColor(getColor(R.color.text_primary))
+    private fun startExport() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            enqueueExport()
         }
-        val progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            max     = 100
-            progress = 0
-            isIndeterminate = false
-            progressTintList = ColorStateList.valueOf(getColor(R.color.accent_cyan))
-        }
-        layout.addView(statusText, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
-        ).also { it.bottomMargin = (16 * dp).toInt() })
-        layout.addView(progressBar, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+    }
 
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("Export Beat")
-            .setView(layout)
-            .setCancelable(false)
-            .create()
-        dialog.show()
-
+    private fun enqueueExport() {
         val rows = mapOf(
             "kick"    to RowState(kickSteps,    kickStepsCount,    kickSoundResName,    pans["kick"]!!),
             "snare"   to RowState(snareSteps,   snareStepsCount,   snareSoundResName,   pans["snare"]!!),
@@ -638,30 +626,31 @@ class SecondActivity : AppCompatActivity() {
             "openHat" to RowState(openHatSteps, openHatStepsCount, openHatSoundResName, pans["openHat"]!!),
             "clap"    to RowState(clapSteps,    clapStepsCount,    clapSoundResName,    pans["clap"]!!)
         )
+        val paramsFile = BeatExporter.writeParamsFile(
+            context = this, userId = userId, bpm = bpm, swing = swing,
+            barRows = List(4) { rows },
+            volumes = volumes.toMap(), pans = pans.toMap(),
+            muted = muted.toMap(), soundSettings = soundSettingsCache
+        )
+        val request = OneTimeWorkRequestBuilder<BeatExportWorker>()
+            .setInputData(workDataOf(BeatExportWorker.KEY_PARAMS_FILE to paramsFile.absolutePath))
+            .build()
 
-        BeatExporter.export(
-            context      = this,
-            userId       = userId,
-            bpm          = bpm,
-            rows         = rows,
-            volumes      = volumes.toMap(),
-            pans         = pans.toMap(),
-            muted        = muted.toMap(),
-            soundSettings = soundSettingsCache,
-            swing        = swing,
-            onProgress   = { pct -> uiHandler.post { progressBar.progress = pct } },
-            onDone       = { file ->
-                uiHandler.post {
-                    dialog.dismiss()
-                    if (file != null) {
-                        statusText.text = "Done!"
-                        shareFile(file)
-                    } else {
-                        Toast.makeText(this, "Export failed", Toast.LENGTH_SHORT).show()
+        WorkManager.getInstance(this).enqueue(request)
+        Toast.makeText(this, "Exporting in background…", Toast.LENGTH_SHORT).show()
+
+        WorkManager.getInstance(this).getWorkInfoByIdLiveData(request.id)
+            .observe(this) { info ->
+                when (info?.state) {
+                    WorkInfo.State.SUCCEEDED -> {
+                        val path = info.outputData.getString(BeatExportWorker.KEY_OUTPUT_FILE)
+                        if (path != null) shareFile(java.io.File(path))
                     }
+                    WorkInfo.State.FAILED ->
+                        Toast.makeText(this, "Export failed", Toast.LENGTH_SHORT).show()
+                    else -> {}
                 }
             }
-        )
     }
 
     private fun shareFile(file: java.io.File) {
