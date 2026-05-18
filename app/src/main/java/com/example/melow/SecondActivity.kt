@@ -8,7 +8,9 @@ import android.media.audiofx.PresetReverb
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -80,6 +82,9 @@ class SecondActivity : AppCompatActivity() {
         "clap"    to "Clap"
     )
 
+    private var loadingOverlay: View? = null
+    @Volatile private var loadedSoundCount = 0
+
     private val sequencerThread = android.os.HandlerThread("SequencerThread").also { it.start() }
     private val sequencerHandler = Handler(sequencerThread.looper)
     private val uiHandler = Handler(Looper.getMainLooper())
@@ -119,6 +124,7 @@ class SecondActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_second)
+        showLoadingOverlay()
 
         setupSoundPool()
         initAudioEffects()
@@ -127,6 +133,20 @@ class SecondActivity : AppCompatActivity() {
         intent.getStringExtra("projectJson")?.let { loadProjectData(it) }
         loadedProjectName = intent.getStringExtra("projectName")
         setupUI()
+    }
+
+    private fun showLoadingOverlay() {
+        val root = window.decorView.findViewById<ViewGroup>(android.R.id.content)
+        loadingOverlay = LayoutInflater.from(this).inflate(R.layout.view_loading_overlay, root, false)
+        root.addView(loadingOverlay)
+    }
+
+    private fun dismissLoadingOverlay() {
+        loadingOverlay?.animate()
+            ?.alpha(0f)
+            ?.setDuration(300)
+            ?.withEndAction { loadingOverlay?.visibility = View.GONE }
+            ?.start()
     }
 
     private fun setupSoundPool() {
@@ -138,6 +158,13 @@ class SecondActivity : AppCompatActivity() {
             .setMaxStreams(10)
             .setAudioAttributes(audioAttrs)
             .build()
+
+        soundPool.setOnLoadCompleteListener { _, _, _ ->
+            loadedSoundCount++
+            if (loadedSoundCount >= 5) {
+                uiHandler.post { dismissLoadingOverlay() }
+            }
+        }
 
         kickSound    = soundPool.load(this, R.raw.kick,    1)
         snareSound   = soundPool.load(this, R.raw.snare,   1)
