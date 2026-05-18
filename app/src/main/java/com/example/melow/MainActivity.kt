@@ -32,16 +32,16 @@ class MainActivity : AppCompatActivity() {
         val buttonSection = findViewById<LinearLayout>(R.id.buttonSection)
 
         logoSection.alpha = 0f
-        logoSection.translationY = -40f
+        logoSection.translationY = -24f
         logoSection.animate()
             .alpha(1f).translationY(0f)
-            .setDuration(500).setStartDelay(100).start()
+            .setDuration(420).setStartDelay(80).start()
 
         buttonSection.alpha = 0f
-        buttonSection.translationY = 60f
+        buttonSection.translationY = 48f
         buttonSection.animate()
             .alpha(1f).translationY(0f)
-            .setDuration(500).setStartDelay(280).start()
+            .setDuration(420).setStartDelay(220).start()
 
         findViewById<Button>(R.id.createButton).setOnClickListener {
             animateButton(it as Button) {
@@ -73,9 +73,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun animateButton(btn: Button, action: () -> Unit) {
-        btn.animate().scaleX(0.93f).scaleY(0.93f).setDuration(80)
+        btn.animate().scaleX(0.96f).scaleY(0.96f).setDuration(60)
             .withEndAction {
-                btn.animate().scaleX(1f).scaleY(1f).setDuration(80)
+                btn.animate().scaleX(1f).scaleY(1f).setDuration(100)
                     .withEndAction(action).start()
             }.start()
     }
