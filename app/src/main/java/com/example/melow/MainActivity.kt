@@ -2,6 +2,9 @@ package com.example.melow
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -41,6 +44,8 @@ class MainActivity : AppCompatActivity() {
             .alpha(1f).translationY(0f)
             .setDuration(420).setStartDelay(80).start()
 
+        findViewById<TextView>(R.id.title).setOnClickListener { spawnNotes(it) }
+
         buttonSection.alpha = 0f
         buttonSection.translationY = 48f
         buttonSection.animate()
@@ -73,6 +78,49 @@ class MainActivity : AppCompatActivity() {
                 startActivity(Intent(this, SoundLibraryActivity::class.java).putExtra("userId", userId))
                 overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
             }
+        }
+    }
+
+    private fun spawnNotes(anchor: android.view.View) {
+        val root = findViewById<ViewGroup>(R.id.mainScreen)
+        val noteChars = listOf("♩", "♪", "♫", "♬", "♪", "♩", "♫", "♬", "♪", "♫", "♬", "♩")
+        val colors = listOf(
+            getColor(R.color.accent_purple), getColor(R.color.accent_cyan),
+            getColor(R.color.accent_amber),  getColor(R.color.accent_green)
+        )
+
+        val anchorPos = IntArray(2).also { anchor.getLocationInWindow(it) }
+        val rootPos   = IntArray(2).also { root.getLocationInWindow(it) }
+        val originX   = (anchorPos[0] - rootPos[0] + anchor.width  / 2).toFloat()
+        val originY   = (anchorPos[1] - rootPos[1] + anchor.height / 2).toFloat()
+
+        noteChars.forEachIndexed { i, note ->
+            Handler(Looper.getMainLooper()).postDelayed({
+                val tv = TextView(this).apply {
+                    text     = note
+                    textSize = 18f + (Math.random() * 24).toFloat()
+                    setTextColor(colors[i % colors.size])
+                    alpha = 0f
+                    x = originX + (Math.random() * 220 - 110).toFloat()
+                    y = originY + (Math.random() * 40  - 20).toFloat()
+                }
+                root.addView(tv, ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ))
+
+                tv.animate().alpha(1f).setDuration(120).withEndAction {
+                    tv.animate()
+                        .alpha(0f)
+                        .translationX((Math.random() * 200 - 100).toFloat())
+                        .translationY(-(90f + (Math.random() * 180).toFloat()))
+                        .rotation((Math.random() * 60 - 30).toFloat())
+                        .scaleX(0.4f).scaleY(0.4f)
+                        .setDuration(800 + (Math.random() * 500).toLong())
+                        .withEndAction { root.removeView(tv) }
+                        .start()
+                }.start()
+            }, i * 65L)
         }
     }
 
