@@ -16,8 +16,12 @@ class MainActivity : AppCompatActivity() {
         val username = intent.getStringExtra("username") ?: ""
         val userId   = intent.getLongExtra("userId", -1L)
 
-        if (username.isNotEmpty()) {
-            findViewById<TextView>(R.id.usernameLabel).text = "Hi, $username"
+        val profileButton = findViewById<Button>(R.id.profileButton)
+        profileButton.text = if (username.isNotEmpty()) "◉  $username  ›" else "◉  Profile  ›"
+
+        profileButton.setOnClickListener {
+            startActivity(Intent(this, ProfileActivity::class.java).putExtra("username", username))
+            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
         }
 
         findViewById<Button>(R.id.logoutButton).setOnClickListener {

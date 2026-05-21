@@ -13,12 +13,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.core.content.ContextCompat
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 
 class SecondActivity : AppCompatActivity() {
 
@@ -257,6 +264,7 @@ class SecondActivity : AppCompatActivity() {
             override fun onProgressChanged(sb: SeekBar, p: Int, fromUser: Boolean) {
                 swing = p / 100f
                 swingLabel.text = "$p%"
+                if (p > 30) AchievementManager.unlock(this@SecondActivity, "swing_master")
             }
             override fun onStartTrackingTouch(sb: SeekBar) {}
             override fun onStopTrackingTouch(sb: SeekBar) {}
@@ -280,6 +288,7 @@ class SecondActivity : AppCompatActivity() {
                 stepDuration = calcStepDuration(bpm)
                 bpmDisplay.text = bpm.toString()
                 hasUnsavedChanges = true
+                if (bpm >= 160) AchievementManager.unlock(this, "speed_demon")
             }
         }
 
@@ -339,6 +348,10 @@ class SecondActivity : AppCompatActivity() {
             }
         }
 
+        // Generate buttons
+        findViewById<Button>(R.id.randomizeBtn).setOnClickListener { randomizeBeat() }
+        findViewById<Button>(R.id.aiGenerateBtn).setOnClickListener { aiGenerateBeat() }
+
         // Save button
         findViewById<Button>(R.id.saveButton).setOnClickListener {
             showSaveDialog()
@@ -346,7 +359,7 @@ class SecondActivity : AppCompatActivity() {
 
         // Export & Share button
         findViewById<Button>(R.id.exportButton).setOnClickListener {
-            showExportDialog()
+            startExport()
         }
 
         // Back button
@@ -355,6 +368,7 @@ class SecondActivity : AppCompatActivity() {
         }
 
         setupMuteAndVolume()
+        setupVisualizer()
     }
 
     private fun setupMuteAndVolume() {
@@ -420,7 +434,7 @@ class SecondActivity : AppCompatActivity() {
                 val step = currentStep
                 triggerSounds(step)
                 currentStep = (step + 1) % maxSteps
-                uiHandler.post { highlightAllRows(step) }
+                uiHandler.post { highlightAllRows(step); updateVisualizer(step) }
                 val delay = if (step % 2 == 0)
                     (stepDuration * (1f + swing)).toLong()
                 else
@@ -470,13 +484,17 @@ class SecondActivity : AppCompatActivity() {
         for (i in 0 until row.childCount) {
             val btn = row.getChildAt(i) as Button
             val active = btn.tag as Boolean
-            val drawableRes = when {
+            btn.setBackgroundResource(when {
                 i == stepIndex && active -> R.drawable.btn_step_playing_active
                 i == stepIndex           -> R.drawable.btn_step_playing
                 active                   -> R.drawable.btn_step_active
                 else                     -> R.drawable.btn_step_normal
+            })
+            if (i == stepIndex) {
+                btn.animate().scaleX(1.12f).scaleY(1.12f).setDuration(55)
+                    .withEndAction { btn.animate().scaleX(1f).scaleY(1f).setDuration(80).start() }
+                    .start()
             }
-            btn.setBackgroundResource(drawableRes)
         }
     }
 
@@ -591,46 +609,29 @@ class SecondActivity : AppCompatActivity() {
                 if (saved) {
                     loadedProjectName = name
                     hasUnsavedChanges = false
+                    AchievementManager.unlock(this, "first_beat")
+                    checkFullKitAchievement()
                 }
             }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
-    private fun showExportDialog() {
-        val dp       = resources.displayMetrics.density
-        val layout   = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity     = android.view.Gravity.CENTER
-            setPadding((24 * dp).toInt(), (24 * dp).toInt(), (24 * dp).toInt(), (16 * dp).toInt())
-            setBackgroundColor(getColor(R.color.bg_surface))
-        }
+    private val notifPermLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { enqueueExport() }
 
-        val statusText = TextView(this).apply {
-            text      = "Rendering beat..."
-            textSize  = 16f
-            gravity   = android.view.Gravity.CENTER
-            setTextColor(getColor(R.color.text_primary))
+    private fun startExport() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            enqueueExport()
         }
-        val progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
-            max     = 100
-            progress = 0
-            isIndeterminate = false
-            progressTintList = ColorStateList.valueOf(getColor(R.color.accent_cyan))
-        }
-        layout.addView(statusText, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
-        ).also { it.bottomMargin = (16 * dp).toInt() })
-        layout.addView(progressBar, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+    }
 
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("Export Beat")
-            .setView(layout)
-            .setCancelable(false)
-            .create()
-        dialog.show()
-
+    private fun enqueueExport() {
         val rows = mapOf(
             "kick"    to RowState(kickSteps,    kickStepsCount,    kickSoundResName,    pans["kick"]!!),
             "snare"   to RowState(snareSteps,   snareStepsCount,   snareSoundResName,   pans["snare"]!!),
@@ -638,30 +639,32 @@ class SecondActivity : AppCompatActivity() {
             "openHat" to RowState(openHatSteps, openHatStepsCount, openHatSoundResName, pans["openHat"]!!),
             "clap"    to RowState(clapSteps,    clapStepsCount,    clapSoundResName,    pans["clap"]!!)
         )
+        val paramsFile = BeatExporter.writeParamsFile(
+            context = this, userId = userId, bpm = bpm, swing = swing,
+            barRows = List(4) { rows },
+            volumes = volumes.toMap(), pans = pans.toMap(),
+            muted = muted.toMap(), soundSettings = soundSettingsCache
+        )
+        val request = OneTimeWorkRequestBuilder<BeatExportWorker>()
+            .setInputData(workDataOf(BeatExportWorker.KEY_PARAMS_FILE to paramsFile.absolutePath))
+            .build()
 
-        BeatExporter.export(
-            context      = this,
-            userId       = userId,
-            bpm          = bpm,
-            rows         = rows,
-            volumes      = volumes.toMap(),
-            pans         = pans.toMap(),
-            muted        = muted.toMap(),
-            soundSettings = soundSettingsCache,
-            swing        = swing,
-            onProgress   = { pct -> uiHandler.post { progressBar.progress = pct } },
-            onDone       = { file ->
-                uiHandler.post {
-                    dialog.dismiss()
-                    if (file != null) {
-                        statusText.text = "Done!"
-                        shareFile(file)
-                    } else {
-                        Toast.makeText(this, "Export failed", Toast.LENGTH_SHORT).show()
+        WorkManager.getInstance(this).enqueue(request)
+        Toast.makeText(this, "Exporting in background…", Toast.LENGTH_SHORT).show()
+        AchievementManager.unlock(this, "exporter")
+
+        WorkManager.getInstance(this).getWorkInfoByIdLiveData(request.id)
+            .observe(this) { info ->
+                when (info?.state) {
+                    WorkInfo.State.SUCCEEDED -> {
+                        val path = info.outputData.getString(BeatExportWorker.KEY_OUTPUT_FILE)
+                        if (path != null) shareFile(java.io.File(path))
                     }
+                    WorkInfo.State.FAILED ->
+                        Toast.makeText(this, "Export failed", Toast.LENGTH_SHORT).show()
+                    else -> {}
                 }
             }
-        )
     }
 
     private fun shareFile(file: java.io.File) {
@@ -836,6 +839,123 @@ class SecondActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         soundSettingsCache = SoundSettingsManager.getAll(this, userId)
+    }
+
+    private fun checkFullKitAchievement() {
+        val allActive = listOf(kickSteps, snareSteps, hatSteps, openHatSteps, clapSteps)
+            .all { arr -> arr.any { it } }
+        if (allActive) AchievementManager.unlock(this, "full_kit")
+    }
+
+    // ── Live visualizer ──────────────────────────────────────────────────────
+
+    private val visualizerBars = mutableListOf<View>()
+
+    private fun setupVisualizer() {
+        val container = findViewById<LinearLayout>(R.id.visualizerStrip)
+        val dp = resources.displayMetrics.density
+        val colors = listOf(
+            getColor(R.color.accent_purple), getColor(R.color.accent_cyan),
+            getColor(R.color.accent_amber),  getColor(R.color.accent_green)
+        )
+        repeat(16) { i ->
+            val bar = View(this).apply {
+                layoutParams = LinearLayout.LayoutParams(0, (20 * dp).toInt(), 1f)
+                    .also { it.marginEnd = (2 * dp).toInt() }
+                setBackgroundColor(colors[i % colors.size])
+                alpha = 0.12f
+            }
+            visualizerBars.add(bar)
+            container.addView(bar)
+        }
+    }
+
+    private fun updateVisualizer(step: Int) {
+        visualizerBars.forEachIndexed { i, bar ->
+            val dist = minOf(Math.abs(i - step), 16 - Math.abs(i - step))
+            val targetAlpha = when (dist) { 0 -> 1f; 1 -> 0.55f; 2 -> 0.3f; else -> 0.12f }
+            bar.animate().alpha(targetAlpha).setDuration(if (dist == 0) 50L else 160L).start()
+            if (dist == 0) bar.animate().scaleY(1.3f).setDuration(50)
+                .withEndAction { bar.animate().scaleY(1f).setDuration(120).start() }.start()
+        }
+    }
+
+    // ── Beat generation ───────────────────────────────────────────────────────
+
+    private fun rebuildAllRows() {
+        buildRow(kickRow,    kickSteps,    kickStepsCount)
+        buildRow(snareRow,   snareSteps,   snareStepsCount)
+        buildRow(hatRow,     hatSteps,     hatStepsCount)
+        buildRow(openHatRow, openHatSteps, openHatStepsCount)
+        buildRow(clapRow,    clapSteps,    clapStepsCount)
+        findViewById<Button>(R.id.kickToggle).text    = kickStepsCount.toString()
+        findViewById<Button>(R.id.snareToggle).text   = snareStepsCount.toString()
+        findViewById<Button>(R.id.hatToggle).text     = hatStepsCount.toString()
+        findViewById<Button>(R.id.openHatToggle).text = openHatStepsCount.toString()
+        findViewById<Button>(R.id.clapToggle).text    = clapStepsCount.toString()
+    }
+
+    private fun randomizeBeat() {
+        kickStepsCount = 16; snareStepsCount = 16; hatStepsCount = 16
+        openHatStepsCount = 16; clapStepsCount = 16
+        val density = listOf(0.2, 0.18, 0.35, 0.12, 0.15)
+        listOf(kickSteps, snareSteps, hatSteps, openHatSteps, clapSteps)
+            .forEachIndexed { i, arr -> arr.fill(false); repeat(16) { s -> arr[s] = Math.random() < density[i] } }
+        rebuildAllRows()
+        hasUnsavedChanges = true
+        Toast.makeText(this, "Pattern randomized", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun aiGenerateBeat() {
+        val genres = listOf(
+            "Hip-Hop" to mapOf(
+                "kick"    to listOf(0, 4, 8, 11, 14),
+                "snare"   to listOf(4, 12),
+                "hat"     to listOf(2, 6, 8, 10, 14),
+                "openHat" to listOf(7),
+                "clap"    to listOf(4, 12)
+            ),
+            "House" to mapOf(
+                "kick"    to listOf(0, 4, 8, 12),
+                "snare"   to listOf(4, 12),
+                "hat"     to listOf(0, 2, 4, 6, 8, 10, 12, 14),
+                "openHat" to listOf(6, 14),
+                "clap"    to emptyList()
+            ),
+            "Trap" to mapOf(
+                "kick"    to listOf(0, 3, 8, 14),
+                "snare"   to listOf(4, 12),
+                "hat"     to (0 until 16).toList(),
+                "openHat" to listOf(8),
+                "clap"    to listOf(4, 12)
+            ),
+            "Techno" to mapOf(
+                "kick"    to listOf(0, 4, 8, 12),
+                "snare"   to listOf(2, 6, 10, 14),
+                "hat"     to listOf(1, 3, 5, 7, 9, 11, 13, 15),
+                "openHat" to listOf(4, 12),
+                "clap"    to emptyList()
+            )
+        )
+        val (genre, pattern) = genres.random()
+
+        kickStepsCount = 16; snareStepsCount = 16; hatStepsCount = 16
+        openHatStepsCount = 16; clapStepsCount = 16
+
+        val arrays = mapOf("kick" to kickSteps, "snare" to snareSteps, "hat" to hatSteps,
+            "openHat" to openHatSteps, "clap" to clapSteps)
+        arrays.forEach { (_, arr) -> arr.fill(false) }
+        pattern.forEach { (key, steps) ->
+            val arr = arrays[key] ?: return@forEach
+            steps.forEach { i -> if (i < 16) arr[i] = true }
+            // slight randomisation: randomly flip 1 extra step
+            val extra = (0 until 16).random()
+            arr[extra] = !arr[extra]
+        }
+
+        rebuildAllRows()
+        hasUnsavedChanges = true
+        Toast.makeText(this, "$genre pattern generated", Toast.LENGTH_SHORT).show()
     }
 
     private fun handleBack() {
