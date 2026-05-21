@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg_primary">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:background="@color/bg_surface">
+
+        <Button
+            android:id="@+id/backButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="&#8592;"
+            android:textSize="22sp"
+            android:textColor="@color/text_primary"
+            android:background="@android:color/transparent"
+            android:stateListAnimator="@null"
+            android:padding="0dp"/>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="PROFILE"
+            android:textSize="17sp"
+            android:textColor="@color/text_primary"
+            android:fontFamily="sans-serif-black"
+            android:letterSpacing="0.15"
+            android:gravity="center"/>
+
+        <View android:layout_width="48dp" android:layout_height="48dp"/>
+
+    </LinearLayout>
+
+    <!-- User card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/bg_card"
+        android:layout_margin="16dp"
+        android:paddingTop="24dp"
+        android:paddingBottom="20dp">
+
+        <TextView
+            android:id="@+id/profileUsername"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Username"
+            android:textSize="22sp"
+            android:textColor="@color/text_primary"
+            android:fontFamily="sans-serif-black"/>
+
+        <TextView
+            android:id="@+id/achievementCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 / 7 achievements"
+            android:textSize="13sp"
+            android:textColor="@color/accent_cyan"
+            android:layout_marginTop="6dp"/>
+
+        <ProgressBar
+            android:id="@+id/achievementProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="160dp"
+            android:layout_height="6dp"
+            android:layout_marginTop="10dp"
+            android:max="7"
+            android:progress="0"
+            android:progressTint="@color/accent_cyan"
+            android:progressBackgroundTint="@color/step_inactive"/>
+
+    </LinearLayout>
+
+    <!-- Achievements label -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ACHIEVEMENTS"
+        android:textSize="11sp"
+        android:textColor="@color/text_muted"
+        android:fontFamily="sans-serif-black"
+        android:letterSpacing="0.15"
+        android:paddingStart="20dp"
+        android:paddingBottom="8dp"/>
+
+    <!-- Achievement list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/achievementsRecycler"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp"
+        android:clipToPadding="false"/>
+
+</LinearLayout>
