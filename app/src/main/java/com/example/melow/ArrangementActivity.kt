@@ -170,6 +170,7 @@ class ArrangementActivity : AppCompatActivity() {
         bars.add(entry)
         loadedBars.add(rows)
         if (notify) adapter.notifyItemInserted(bars.size - 1)
+        AchievementManager.unlock(this, "arranger")
     }
 
     private fun removeBar(pos: Int) {

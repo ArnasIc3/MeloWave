@@ -70,6 +70,7 @@ class SoundLibraryActivity : AppCompatActivity() {
             allSounds.add(newItem)
             adapter.notifyItemInserted(allSounds.size - 1)
             Toast.makeText(this, "\"${newItem.name}\" added", Toast.LENGTH_SHORT).show()
+            AchievementManager.unlock(this, "custom_sound")
         } else {
             Toast.makeText(this, "Unsupported file type", Toast.LENGTH_SHORT).show()
         }
