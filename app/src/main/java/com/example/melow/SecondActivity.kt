@@ -83,6 +83,17 @@ class SecondActivity : AppCompatActivity() {
     private var reverbEffect: PresetReverb? = null
     private var equalizerEffect: Equalizer? = null
 
+    private var reverbPresetIdx = 0
+    private val softReverbConfigs: List<List<Pair<Long, Float>>> = listOf(
+        emptyList(),                                          // Off
+        listOf(50L to 0.28f),                                 // Small Room
+        listOf(70L to 0.38f, 145L to 0.15f),                  // Medium Room
+        listOf(90L to 0.46f, 185L to 0.19f),                  // Large Room
+        listOf(105L to 0.50f, 215L to 0.24f, 355L to 0.09f),  // Hall
+        listOf(125L to 0.54f, 260L to 0.28f, 435L to 0.11f),  // Large Hall
+        listOf(35L to 0.44f, 78L to 0.19f),                   // Plate
+    )
+
     private val soundDisplayNames = mapOf(
         "kick"    to "Kick Drum",
         "snare"   to "Snare Drum",
@@ -218,8 +229,8 @@ class SecondActivity : AppCompatActivity() {
         val am = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
         val fallbackSession = am.generateAudioSessionId()
 
-        reverbEffect = tryCreateReverb(0) ?: tryCreateReverb(fallbackSession)
-        equalizerEffect = tryCreateEq(0) ?: tryCreateEq(fallbackSession)
+        reverbEffect    = tryCreateReverb(0) ?: tryCreateReverb(fallbackSession)
+        equalizerEffect = tryCreateEq(0)     ?: tryCreateEq(fallbackSession)
 
         val prefs = getSharedPreferences("audio_effects", MODE_PRIVATE)
         val reverbIdx = prefs.getInt("reverb_preset_idx", 0)
@@ -523,6 +534,14 @@ class SecondActivity : AppCompatActivity() {
                 val leftVol  = (vol * if (pan >= 0f) 1f else 1f + pan).coerceIn(0f, 0.85f)
                 val rightVol = (vol * if (pan <= 0f) 1f else 1f - pan).coerceIn(0f, 0.85f)
                 soundPool.play(instrument, leftVol, rightVol, 1, 0, settings.pitch)
+                // Software reverb: schedule attenuated echo copies
+                softReverbConfigs.getOrNull(reverbPresetIdx)?.forEach { (delayMs, volMult) ->
+                    val eL = (leftVol  * volMult).coerceIn(0f, 0.85f)
+                    val eR = (rightVol * volMult).coerceIn(0f, 0.85f)
+                    sequencerHandler.postDelayed({
+                        soundPool.play(instrument, eL, eR, 0, 0, settings.pitch)
+                    }, delayMs)
+                }
             }
         }
         fire("kick",    kickInstrument,    kickSteps,    kickStepsCount,    kickSoundResName)
@@ -779,10 +798,6 @@ class SecondActivity : AppCompatActivity() {
     )
 
     private fun showReverbDialog() {
-        val reverb = reverbEffect ?: run {
-            Toast.makeText(this, "Reverb not available on this device", Toast.LENGTH_SHORT).show()
-            return
-        }
         val prefs = getSharedPreferences("audio_effects", MODE_PRIVATE)
         val current = prefs.getInt("reverb_preset_idx", 0)
         AlertDialog.Builder(this)
@@ -796,12 +811,14 @@ class SecondActivity : AppCompatActivity() {
     }
 
     private fun applyReverbPreset(idx: Int) {
-        val reverb = reverbEffect ?: return
-        if (idx == 0) {
-            reverb.enabled = false
-        } else {
-            reverb.preset = reverbPresetValues.getOrElse(idx) { PresetReverb.PRESET_NONE }
-            reverb.enabled = true
+        reverbPresetIdx = idx
+        // Also enable hardware reverb on devices that support it
+        reverbEffect?.let { reverb ->
+            if (idx == 0) reverb.enabled = false
+            else {
+                reverb.preset = reverbPresetValues.getOrElse(idx) { PresetReverb.PRESET_NONE }
+                reverb.enabled = true
+            }
         }
     }
 
