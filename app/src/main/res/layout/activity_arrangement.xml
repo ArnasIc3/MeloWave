@@ -39,6 +39,18 @@
             android:gravity="center"/>
 
         <Button
+            android:id="@+id/loadArrButton"
+            android:layout_width="52dp"
+            android:layout_height="38dp"
+            android:text="LOAD"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:background="@drawable/bg_btn_secondary"
+            android:stateListAnimator="@null"
+            android:padding="0dp"
+            android:layout_marginEnd="4dp"/>
+
+        <Button
             android:id="@+id/exportArrButton"
             android:layout_width="44dp"
             android:layout_height="38dp"
@@ -201,11 +213,79 @@
     <!-- Play bar -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="80dp"
+        android:layout_height="88dp"
         android:orientation="horizontal"
-        android:gravity="center"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:background="@color/bg_surface">
 
+        <!-- Loop controls (left) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <Button
+                android:id="@+id/loopButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="&#x21BB; LOOP"
+                android:textSize="12sp"
+                android:textColor="@color/text_muted"
+                android:background="@drawable/bg_btn_secondary"
+                android:stateListAnimator="@null"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"/>
+
+            <LinearLayout
+                android:id="@+id/loopCountRow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="4dp"
+                android:visibility="gone">
+
+                <Button
+                    android:id="@+id/loopMinus"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:text="&#8722;"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_primary"
+                    android:background="@drawable/bg_btn_secondary"
+                    android:stateListAnimator="@null"
+                    android:padding="0dp"/>
+
+                <TextView
+                    android:id="@+id/loopCountLabel"
+                    android:layout_width="44dp"
+                    android:layout_height="wrap_content"
+                    android:text="&#215;2"
+                    android:textSize="15sp"
+                    android:textColor="@color/accent_amber"
+                    android:fontFamily="sans-serif-black"
+                    android:gravity="center"/>
+
+                <Button
+                    android:id="@+id/loopPlus"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:text="+"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_primary"
+                    android:background="@drawable/bg_btn_secondary"
+                    android:stateListAnimator="@null"
+                    android:padding="0dp"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Play button (centre) -->
         <Button
             android:id="@+id/playButton"
             android:layout_width="72dp"
@@ -216,6 +296,12 @@
             android:background="@drawable/bg_play_btn"
             android:stateListAnimator="@null"
             android:padding="0dp"/>
+
+        <!-- Right spacer for balance -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1"/>
 
     </LinearLayout>
 

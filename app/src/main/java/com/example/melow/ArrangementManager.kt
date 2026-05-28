@@ -14,39 +14,73 @@ data class ArrangementSave(
     val bars: List<BarEntry>
 )
 
+data class ArrangementMeta(
+    val fileName: String,
+    val name: String,
+    val bpm: Int,
+    val barCount: Int,
+    val lastModified: Long
+)
+
 object ArrangementManager {
 
-    private const val FILE = "arrangement.json"
+    private fun dir(context: Context, userId: Long): File =
+        File(context.filesDir, "arrangements_$userId").also { it.mkdirs() }
 
-    fun save(context: Context, data: ArrangementSave): Boolean = try {
+    fun list(context: Context, userId: Long): List<ArrangementMeta> =
+        dir(context, userId).listFiles()
+            ?.filter { it.extension == "json" }
+            ?.sortedByDescending { it.lastModified() }
+            ?.mapNotNull { f ->
+                try {
+                    val root = JSONObject(f.readText())
+                    ArrangementMeta(
+                        fileName     = f.name,
+                        name         = root.optString("name", "Arrangement"),
+                        bpm          = root.optInt("bpm", 120),
+                        barCount     = root.optJSONArray("bars")?.length() ?: 0,
+                        lastModified = f.lastModified()
+                    )
+                } catch (_: Exception) { null }
+            } ?: emptyList()
+
+    fun save(context: Context, userId: Long, data: ArrangementSave, fileName: String? = null): String? = try {
+        val fn = fileName ?: "arr_${System.currentTimeMillis()}.json"
+        File(dir(context, userId), fn).writeText(buildJson(data).toString())
+        fn
+    } catch (_: Exception) { null }
+
+    fun load(context: Context, userId: Long, fileName: String): ArrangementSave? = try {
+        parseJson(File(dir(context, userId), fileName).readText())
+    } catch (_: Exception) { null }
+
+    private fun buildJson(data: ArrangementSave): JSONObject {
         val arr = JSONArray()
-        data.bars.forEach { bar ->
+        data.bars.forEach { b ->
             arr.put(JSONObject().apply {
-                put("patternFileName", bar.patternFileName)
-                put("patternName",     bar.patternName)
+                put("patternFileName", b.patternFileName)
+                put("patternName",     b.patternName)
             })
         }
-        val root = JSONObject().apply {
+        return JSONObject().apply {
             put("name",  data.name)
             put("bpm",   data.bpm)
             put("swing", data.swing.toDouble())
             put("bars",  arr)
         }
-        File(context.filesDir, FILE).writeText(root.toString())
-        true
-    } catch (_: Exception) { false }
+    }
 
-    fun load(context: Context): ArrangementSave? = try {
-        val root = JSONObject(File(context.filesDir, FILE).readText())
+    private fun parseJson(text: String): ArrangementSave {
+        val root = JSONObject(text)
         val arr  = root.getJSONArray("bars")
-        ArrangementSave(
+        return ArrangementSave(
             name  = root.optString("name", "Arrangement"),
             bpm   = root.optInt("bpm", 120),
             swing = root.optDouble("swing", 0.0).toFloat(),
-            bars  = (0 until arr.length()).map { i ->
-                val obj = arr.getJSONObject(i)
-                BarEntry(obj.getString("patternFileName"), obj.getString("patternName"))
+            bars  = (0 until arr.length()).map {
+                val o = arr.getJSONObject(it)
+                BarEntry(o.getString("patternFileName"), o.getString("patternName"))
             }
         )
-    } catch (_: Exception) { null }
+    }
 }

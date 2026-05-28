@@ -47,12 +47,22 @@
         android:padding="12dp"
         android:layout_marginStart="8dp">
 
-        <!-- Header row: name + remove button -->
+        <!-- Header row: drag handle + name + remove button -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/dragHandle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="&#x283F;"
+                android:textSize="18sp"
+                android:textColor="@color/text_muted"
+                android:paddingEnd="10dp"
+                android:paddingStart="0dp"/>
 
             <TextView
                 android:id="@+id/patternName"

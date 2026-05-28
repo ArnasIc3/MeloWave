@@ -9,7 +9,9 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
+import android.annotation.SuppressLint
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
@@ -17,6 +19,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.work.OneTimeWorkRequestBuilder
@@ -43,13 +46,25 @@ class ArrangementActivity : AppCompatActivity() {
     private val sequencerThread = HandlerThread("ArrSeq").also { it.start() }
     private val sequencerHandler = Handler(sequencerThread.looper)
     private val uiHandler        = Handler(Looper.getMainLooper())
-    @Volatile private var isPlaying   = false
-    @Volatile private var currentStep = 0
-    @Volatile private var currentBar  = 0
+    @Volatile private var isPlaying    = false
+    @Volatile private var currentStep  = 0
+    @Volatile private var currentBar   = 0
+    @Volatile private var currentLoop  = 0
+
+    private var loopEnabled = false
+    private var loopCount   = 2
+
+    private var currentArrangementFileName: String? = null
+    private var currentArrangementName = "Arrangement"
+    private var hasUnsavedChanges = false
 
     private lateinit var adapter: BarSlotAdapter
+    private lateinit var itemTouchHelper: ItemTouchHelper
     private lateinit var nowPlayingLabel: TextView
     private lateinit var playButton: Button
+    private lateinit var loopButton:     Button
+    private lateinit var loopCountRow:   LinearLayout
+    private lateinit var loopCountLabel: TextView
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -61,11 +76,15 @@ class ArrangementActivity : AppCompatActivity() {
         setupSoundPool()
         soundSettingsCache = SoundSettingsManager.getAll(this, userId)
 
-        // Load saved arrangement
-        ArrangementManager.load(this)?.let { saved ->
-            bpm   = saved.bpm
-            swing = saved.swing
-            saved.bars.forEach { addBar(it, notify = false) }
+        // Load most recent saved arrangement
+        ArrangementManager.list(this, userId).firstOrNull()?.let { meta ->
+            currentArrangementFileName = meta.fileName
+            currentArrangementName     = meta.name
+            ArrangementManager.load(this, userId, meta.fileName)?.let { saved ->
+                bpm   = saved.bpm
+                swing = saved.swing
+                saved.bars.forEach { addBar(it, notify = false) }
+            }
         }
 
         setupUI()
@@ -97,10 +116,10 @@ class ArrangementActivity : AppCompatActivity() {
         val bpmDisplay = findViewById<TextView>(R.id.bpmDisplay)
         bpmDisplay.text = bpm.toString()
         findViewById<Button>(R.id.bpmMinus).setOnClickListener {
-            if (bpm > 40) { bpm -= 5; bpmDisplay.text = bpm.toString() }
+            if (bpm > 40) { bpm -= 5; bpmDisplay.text = bpm.toString(); hasUnsavedChanges = true }
         }
         findViewById<Button>(R.id.bpmPlus).setOnClickListener {
-            if (bpm < 240) { bpm += 5; bpmDisplay.text = bpm.toString() }
+            if (bpm < 240) { bpm += 5; bpmDisplay.text = bpm.toString(); hasUnsavedChanges = true }
         }
 
         // Swing
@@ -110,7 +129,7 @@ class ArrangementActivity : AppCompatActivity() {
         swingLabel.text   = "${(swing * 100).toInt()}%"
         swingBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar, p: Int, fromUser: Boolean) {
-                swing = p / 100f; swingLabel.text = "$p%"
+                swing = p / 100f; swingLabel.text = "$p%"; hasUnsavedChanges = true
             }
             override fun onStartTrackingTouch(sb: SeekBar) {}
             override fun onStopTrackingTouch(sb: SeekBar) {}
@@ -118,10 +137,12 @@ class ArrangementActivity : AppCompatActivity() {
 
         // RecyclerView
         adapter = BarSlotAdapter(bars) { pos -> confirmRemoveBar(pos) }
-        findViewById<RecyclerView>(R.id.barRecycler).apply {
+        val recycler = findViewById<RecyclerView>(R.id.barRecycler).apply {
             layoutManager = LinearLayoutManager(this@ArrangementActivity)
             this.adapter  = this@ArrangementActivity.adapter
         }
+        itemTouchHelper = ItemTouchHelper(DragCallback())
+        itemTouchHelper.attachToRecyclerView(recycler)
 
         // Add bar
         findViewById<Button>(R.id.addBarButton).setOnClickListener { showPatternPicker() }
@@ -131,8 +152,31 @@ class ArrangementActivity : AppCompatActivity() {
             if (isPlaying) stopPlayback() else startPlayback()
         }
 
-        // Save
+        // Loop controls
+        loopButton     = findViewById(R.id.loopButton)
+        loopCountRow   = findViewById(R.id.loopCountRow)
+        loopCountLabel = findViewById(R.id.loopCountLabel)
+        updateLoopLabel()
+
+        loopButton.setOnClickListener {
+            loopEnabled = !loopEnabled
+            loopButton.setTextColor(
+                if (loopEnabled) getColor(R.color.accent_amber) else getColor(R.color.text_muted)
+            )
+            loopCountRow.visibility = if (loopEnabled) View.VISIBLE else View.GONE
+        }
+        findViewById<Button>(R.id.loopMinus).setOnClickListener {
+            if (loopCount == 0) loopCount = 16 else if (loopCount > 1) loopCount--
+            updateLoopLabel()
+        }
+        findViewById<Button>(R.id.loopPlus).setOnClickListener {
+            if (loopCount >= 16) loopCount = 0 else loopCount++
+            updateLoopLabel()
+        }
+
+        // Save / Load
         findViewById<Button>(R.id.saveArrButton).setOnClickListener { saveArrangement() }
+        findViewById<Button>(R.id.loadArrButton).setOnClickListener { promptLoadArrangement() }
 
         // Export
         findViewById<Button>(R.id.exportArrButton).setOnClickListener {
@@ -169,6 +213,7 @@ class ArrangementActivity : AppCompatActivity() {
 
         bars.add(entry)
         loadedBars.add(rows)
+        hasUnsavedChanges = true
         if (notify) adapter.notifyItemInserted(bars.size - 1)
         AchievementManager.unlock(this, "arranger")
     }
@@ -177,6 +222,7 @@ class ArrangementActivity : AppCompatActivity() {
         if (pos < 0 || pos >= bars.size) return
         bars.removeAt(pos)
         loadedBars.removeAt(pos)
+        hasUnsavedChanges = true
         adapter.notifyItemRemoved(pos)
         adapter.notifyItemRangeChanged(pos, bars.size)
     }
@@ -219,6 +265,7 @@ class ArrangementActivity : AppCompatActivity() {
         isPlaying   = true
         currentStep = 0
         currentBar  = 0
+        currentLoop = 0
         playButton.text = "■"
         playButton.setBackgroundResource(R.drawable.bg_stop_btn)
 
@@ -234,13 +281,21 @@ class ArrangementActivity : AppCompatActivity() {
                 if (nextStep >= 16) {
                     val nextBar = bar + 1
                     if (nextBar >= bars.size) {
-                        // End of arrangement
-                        isPlaying = false
-                        uiHandler.post { onPlaybackFinished() }
-                        return
+                        val loopsDone  = currentLoop + 1
+                        val shouldLoop = loopEnabled && (loopCount == 0 || loopsDone < loopCount)
+                        if (shouldLoop) {
+                            currentLoop++
+                            currentStep = 0
+                            currentBar  = 0
+                        } else {
+                            isPlaying = false
+                            uiHandler.post { onPlaybackFinished() }
+                            return
+                        }
+                    } else {
+                        currentStep = 0
+                        currentBar  = nextBar
                     }
-                    currentStep = 0
-                    currentBar  = nextBar
                 } else {
                     currentStep = nextStep
                 }
@@ -271,7 +326,15 @@ class ArrangementActivity : AppCompatActivity() {
 
     private fun updateNowPlaying(bar: Int) {
         val name = bars.getOrNull(bar)?.patternName ?: return
-        nowPlayingLabel.text = "▶  Bar ${bar + 1}: $name"
+        val loopSuffix = if (loopEnabled) {
+            val total = if (loopCount == 0) "∞" else loopCount.toString()
+            "  [${currentLoop + 1}/$total]"
+        } else ""
+        nowPlayingLabel.text = "▶  Bar ${bar + 1}: $name$loopSuffix"
+    }
+
+    private fun updateLoopLabel() {
+        loopCountLabel.text = if (loopCount == 0) "∞" else "×$loopCount"
     }
 
     private fun triggerBar(step: Int, barIdx: Int) {
@@ -293,12 +356,89 @@ class ArrangementActivity : AppCompatActivity() {
         }
     }
 
-    // ── Save ──────────────────────────────────────────────────────────────────
+    // ── Save / Load ───────────────────────────────────────────────────────────
 
-    private fun saveArrangement() {
-        val data = ArrangementSave("My Arrangement", bpm, swing, bars.toList())
-        val ok   = ArrangementManager.save(this, data)
-        Toast.makeText(this, if (ok) "Arrangement saved" else "Save failed", Toast.LENGTH_SHORT).show()
+    private fun saveArrangement(onSaved: (() -> Unit)? = null) {
+        val input = EditText(this).apply {
+            setText(currentArrangementName)
+            hint = "Arrangement name"
+            selectAll()
+            setPadding(48, 32, 48, 16)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Save Arrangement")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val name = input.text.toString().trim().ifEmpty { "Arrangement" }
+                currentArrangementName = name
+                val data = ArrangementSave(name, bpm, swing, bars.toList())
+                val fn   = ArrangementManager.save(this, userId, data, currentArrangementFileName)
+                if (fn != null) {
+                    currentArrangementFileName = fn
+                    hasUnsavedChanges = false
+                    Toast.makeText(this, "Saved: $name", Toast.LENGTH_SHORT).show()
+                    onSaved?.invoke()
+                } else {
+                    Toast.makeText(this, "Save failed", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun promptLoadArrangement() {
+        if (hasUnsavedChanges && bars.isNotEmpty()) {
+            AlertDialog.Builder(this)
+                .setTitle("Unsaved Changes")
+                .setMessage("Save the current arrangement before loading?")
+                .setPositiveButton("Save") { _, _ -> saveArrangement { showArrangementPicker() } }
+                .setNegativeButton("Discard") { _, _ -> showArrangementPicker() }
+                .setNeutralButton("Cancel", null)
+                .show()
+        } else {
+            showArrangementPicker()
+        }
+    }
+
+    private fun showArrangementPicker() {
+        val list = ArrangementManager.list(this, userId)
+        if (list.isEmpty()) {
+            Toast.makeText(this, "No saved arrangements", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val labels = list.map { "${it.name}  ·  ${it.barCount} bars  ·  ${it.bpm} BPM" }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("Load Arrangement")
+            .setItems(labels) { _, idx -> loadArrangementData(list[idx]) }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun loadArrangementData(meta: ArrangementMeta) {
+        val data = ArrangementManager.load(this, userId, meta.fileName) ?: run {
+            Toast.makeText(this, "Failed to load", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (isPlaying) stopPlayback()
+
+        bars.clear()
+        loadedBars.clear()
+        adapter.notifyDataSetChanged()
+
+        currentArrangementFileName = meta.fileName
+        currentArrangementName     = meta.name
+        bpm   = data.bpm
+        swing = data.swing
+
+        findViewById<TextView>(R.id.bpmDisplay).text = bpm.toString()
+        val swingPct = (swing * 100).toInt()
+        (findViewById<SeekBar>(R.id.swingBar)).progress        = swingPct
+        (findViewById<TextView>(R.id.swingLabel)).text         = "$swingPct%"
+
+        data.bars.forEach { addBar(it, notify = false) }
+        adapter.notifyDataSetChanged()
+        hasUnsavedChanges = false
+        Toast.makeText(this, "Loaded: ${meta.name}", Toast.LENGTH_SHORT).show()
     }
 
     // ── Export ────────────────────────────────────────────────────────────────
@@ -384,6 +524,38 @@ class ArrangementActivity : AppCompatActivity() {
         overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
     }
 
+    // ── Drag & drop ───────────────────────────────────────────────────────────
+
+    private inner class DragCallback : ItemTouchHelper.SimpleCallback(
+        ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
+    ) {
+        override fun onMove(
+            recyclerView: RecyclerView,
+            viewHolder: RecyclerView.ViewHolder,
+            target: RecyclerView.ViewHolder
+        ): Boolean {
+            adapter.moveItem(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+            return true
+        }
+
+        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+
+        override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+            super.onSelectedChanged(viewHolder, actionState)
+            if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+                if (isPlaying) stopPlayback()
+                viewHolder?.itemView?.alpha = 0.7f
+            }
+        }
+
+        override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+            super.clearView(recyclerView, viewHolder)
+            viewHolder.itemView.alpha = 1f
+            hasUnsavedChanges = true
+            adapter.notifyDataSetChanged()
+        }
+    }
+
     // ── Adapter ───────────────────────────────────────────────────────────────
 
     inner class BarSlotAdapter(
@@ -392,11 +564,12 @@ class ArrangementActivity : AppCompatActivity() {
     ) : RecyclerView.Adapter<BarSlotAdapter.VH>() {
 
         inner class VH(view: View) : RecyclerView.ViewHolder(view) {
-            val barNumber:        TextView    = view.findViewById(R.id.barNumber)
-            val patternName:      TextView    = view.findViewById(R.id.patternName)
-            val patternMeta:      TextView    = view.findViewById(R.id.patternMeta)
-            val removeBtn:        Button      = view.findViewById(R.id.removeBarBtn)
-            val stepPreview:      LinearLayout = view.findViewById(R.id.stepPreviewContainer)
+            val barNumber:   TextView     = view.findViewById(R.id.barNumber)
+            val patternName: TextView     = view.findViewById(R.id.patternName)
+            val patternMeta: TextView     = view.findViewById(R.id.patternMeta)
+            val removeBtn:   Button       = view.findViewById(R.id.removeBarBtn)
+            val stepPreview: LinearLayout = view.findViewById(R.id.stepPreviewContainer)
+            val dragHandle:  TextView     = view.findViewById(R.id.dragHandle)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = VH(
@@ -421,9 +594,25 @@ class ArrangementActivity : AppCompatActivity() {
             holder.itemView.alpha = if (playing) 1f else 0.85f
 
             holder.removeBtn.setOnClickListener { onRemove(holder.bindingAdapterPosition) }
+
+            @SuppressLint("ClickableViewAccessibility")
+            holder.dragHandle.setOnTouchListener { _, event ->
+                if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                    itemTouchHelper.startDrag(holder)
+                }
+                false
+            }
         }
 
         override fun getItemCount() = items.size
+
+        fun moveItem(from: Int, to: Int) {
+            val bar    = bars.removeAt(from)
+            val loaded = loadedBars.removeAt(from)
+            bars.add(to, bar)
+            loadedBars.add(to, loaded)
+            notifyItemMoved(from, to)
+        }
 
         private fun buildStepPreview(container: LinearLayout, rows: Map<String, RowState>) {
             container.removeAllViews()
