@@ -129,6 +129,31 @@
 
         </LinearLayout>
 
+        <!-- Tempo slider row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:layout_width="52dp"
+                android:layout_height="wrap_content"
+                android:text="Tempo"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"/>
+
+            <SeekBar
+                android:id="@+id/bpmSlider"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="200"
+                android:progress="80"/>
+
+        </LinearLayout>
+
         <!-- Swing row -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -197,6 +222,42 @@
             android:textSize="11sp"
             android:textColor="@color/text_on_primary"
             android:background="@drawable/bg_btn_primary"
+            android:stateListAnimator="@null"
+            android:soundEffectsEnabled="false"/>
+
+    </LinearLayout>
+
+    <!-- Humanize + Count-In row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="4dp">
+
+        <Button
+            android:id="@+id/humanizeBtn"
+            android:layout_width="0dp"
+            android:layout_height="34dp"
+            android:layout_weight="1"
+            android:text="HUMANIZE"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:background="@drawable/bg_btn_secondary"
+            android:stateListAnimator="@null"
+            android:soundEffectsEnabled="false"
+            android:layout_marginEnd="8dp"/>
+
+        <Button
+            android:id="@+id/countInBtn"
+            android:layout_width="0dp"
+            android:layout_height="34dp"
+            android:layout_weight="1"
+            android:text="COUNT IN"
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:background="@drawable/bg_btn_secondary"
             android:stateListAnimator="@null"
             android:soundEffectsEnabled="false"/>
 

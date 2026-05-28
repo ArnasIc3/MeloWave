@@ -105,7 +105,13 @@ class SecondActivity : AppCompatActivity() {
 
     private var bpm = 120
     private var stepDuration = calcStepDuration(120)
-    private var swing = 0f   // 0.0 (straight) .. 0.5 (triplet)
+    private var swing = 0f
+
+    private var humanizeEnabled = false
+    private var countInEnabled  = false
+    @Volatile private var isCountingIn = false
+
+    private lateinit var playButton: Button
 
     private var loadedProjectName: String? = null
 
@@ -272,25 +278,30 @@ class SecondActivity : AppCompatActivity() {
 
         // BPM controls
         val bpmDisplay = findViewById<TextView>(R.id.bpmDisplay)
-        bpmDisplay.text = bpm.toString()
+        val bpmSlider  = findViewById<SeekBar>(R.id.bpmSlider)
+        bpmDisplay.text    = bpm.toString()
+        bpmSlider.progress = bpm - 40
 
-        findViewById<Button>(R.id.bpmMinus).setOnClickListener {
-            if (bpm > 40) {
-                bpm -= 5
-                stepDuration = calcStepDuration(bpm)
-                bpmDisplay.text = bpm.toString()
-                hasUnsavedChanges = true
-            }
+        fun syncBpm(newBpm: Int) {
+            bpm               = newBpm.coerceIn(40, 240)
+            stepDuration      = calcStepDuration(bpm)
+            bpmDisplay.text   = bpm.toString()
+            bpmSlider.progress = bpm - 40
+            hasUnsavedChanges = true
         }
+
+        findViewById<Button>(R.id.bpmMinus).setOnClickListener { syncBpm(bpm - 5) }
         findViewById<Button>(R.id.bpmPlus).setOnClickListener {
-            if (bpm < 240) {
-                bpm += 5
-                stepDuration = calcStepDuration(bpm)
-                bpmDisplay.text = bpm.toString()
-                hasUnsavedChanges = true
-                if (bpm >= 160) AchievementManager.unlock(this, "speed_demon")
-            }
+            syncBpm(bpm + 5)
+            if (bpm >= 160) AchievementManager.unlock(this, "speed_demon")
         }
+        bpmSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar, p: Int, fromUser: Boolean) {
+                if (fromUser) syncBpm(p + 40)
+            }
+            override fun onStartTrackingTouch(sb: SeekBar) {}
+            override fun onStopTrackingTouch(sb: SeekBar) {}
+        })
 
         // Row toggles (8/16 steps)
         findViewById<Button>(R.id.kickToggle).setOnClickListener    { toggleRow(kickRow,    kickSteps,    "kick") }
@@ -330,27 +341,44 @@ class SecondActivity : AppCompatActivity() {
         findViewById<Button>(R.id.eqButton).setOnClickListener { showEqDialog() }
 
         // Play button
-        val playButton = findViewById<Button>(R.id.playButton)
+        playButton = findViewById(R.id.playButton)
         playButton.setOnClickListener {
-            if (!isPlaying) {
-                isPlaying = true
-                playButton.text = "■"
-                playButton.setBackgroundResource(R.drawable.bg_stop_btn)
-                playButton.animate().scaleX(1.1f).scaleY(1.1f).setDuration(120)
-                    .withEndAction { playButton.animate().scaleX(1f).scaleY(1f).setDuration(120).start() }
-                    .start()
-                startSequencer()
-            } else {
-                stopSequencer()
-                playButton.text = "▶"
-                playButton.setBackgroundResource(R.drawable.bg_play_btn)
-                resetHighlights()
+            when {
+                isCountingIn -> {
+                    isCountingIn = false
+                    playButton.text = "▶"
+                }
+                !isPlaying -> {
+                    if (countInEnabled) startCountIn() else beginPlayback()
+                }
+                else -> {
+                    stopSequencer()
+                    playButton.text = "▶"
+                    playButton.setBackgroundResource(R.drawable.bg_play_btn)
+                    resetHighlights()
+                }
             }
         }
 
         // Generate buttons
         findViewById<Button>(R.id.randomizeBtn).setOnClickListener { randomizeBeat() }
         findViewById<Button>(R.id.aiGenerateBtn).setOnClickListener { aiGenerateBeat() }
+
+        val humanizeBtn = findViewById<Button>(R.id.humanizeBtn)
+        val countInBtn  = findViewById<Button>(R.id.countInBtn)
+
+        humanizeBtn.setOnClickListener {
+            humanizeEnabled = !humanizeEnabled
+            humanizeBtn.setTextColor(
+                if (humanizeEnabled) getColor(R.color.accent_amber) else getColor(R.color.text_secondary)
+            )
+        }
+        countInBtn.setOnClickListener {
+            countInEnabled = !countInEnabled
+            countInBtn.setTextColor(
+                if (countInEnabled) getColor(R.color.accent_cyan) else getColor(R.color.text_secondary)
+            )
+        }
 
         // Save button
         findViewById<Button>(R.id.saveButton).setOnClickListener {
@@ -435,19 +463,52 @@ class SecondActivity : AppCompatActivity() {
                 triggerSounds(step)
                 currentStep = (step + 1) % maxSteps
                 uiHandler.post { highlightAllRows(step); updateVisualizer(step) }
-                val delay = if (step % 2 == 0)
+                val base = if (step % 2 == 0)
                     (stepDuration * (1f + swing)).toLong()
                 else
                     (stepDuration * (1f - swing)).toLong()
-                sequencerHandler.postDelayed(this, delay)
+                val jitter = if (humanizeEnabled) {
+                    val cap = (stepDuration * 0.12f).toInt().coerceAtLeast(4)
+                    kotlin.random.Random.nextInt(-cap, cap).toLong()
+                } else 0L
+                sequencerHandler.postDelayed(this, (base + jitter).coerceAtLeast(1L))
             }
         })
     }
 
     private fun stopSequencer() {
-        isPlaying = false
-        currentStep = 0
+        isCountingIn = false
+        isPlaying    = false
+        currentStep  = 0
         sequencerHandler.removeCallbacksAndMessages(null)
+    }
+
+    private fun beginPlayback() {
+        isPlaying = true
+        playButton.text = "■"
+        playButton.setBackgroundResource(R.drawable.bg_stop_btn)
+        playButton.animate().scaleX(1.1f).scaleY(1.1f).setDuration(120)
+            .withEndAction { playButton.animate().scaleX(1f).scaleY(1f).setDuration(120).start() }
+            .start()
+        startSequencer()
+    }
+
+    private fun startCountIn() {
+        isCountingIn = true
+        val beatMs = 60_000L / bpm
+        listOf("3", "2", "1").forEachIndexed { i, label ->
+            uiHandler.postDelayed({
+                if (isCountingIn) playButton.text = label
+            }, i * beatMs)
+        }
+        uiHandler.postDelayed({
+            if (!isCountingIn) {
+                playButton.text = "▶"
+                return@postDelayed
+            }
+            isCountingIn = false
+            beginPlayback()
+        }, 3 * beatMs)
     }
 
     private fun triggerSounds(step: Int) {
@@ -879,8 +940,6 @@ class SecondActivity : AppCompatActivity() {
                 .withEndAction { bar.animate().scaleY(1f).setDuration(120).start() }.start()
         }
     }
-
-    // ── Beat generation ───────────────────────────────────────────────────────
 
     private fun rebuildAllRows() {
         buildRow(kickRow,    kickSteps,    kickStepsCount)
