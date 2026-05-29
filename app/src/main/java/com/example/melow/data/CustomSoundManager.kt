@@ -1,8 +1,9 @@
-package com.example.melow
+package com.example.melow.data
 
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.example.melow.adapters.SoundItem
 import java.io.File
 
 object CustomSoundManager {

@@ -1,4 +1,4 @@
-package com.example.melow
+package com.example.melow.data
 
 import android.content.Context
 import org.json.JSONObject
@@ -6,8 +6,8 @@ import java.io.File
 
 data class SoundSettings(
     val displayName: String = "",
-    val pitch: Float = 1.0f,   // 0.5 (lower) – 2.0 (higher), SoundPool rate param
-    val level: Float = 1.0f    // 0.0 – 1.0 per-sound gain
+    val pitch: Float = 1.0f,
+    val level: Float = 1.0f
 )
 
 object SoundSettingsManager {

@@ -1,4 +1,4 @@
-package com.example.melow
+package com.example.melow.data
 
 import android.content.Context
 import android.widget.Toast

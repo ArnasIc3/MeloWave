@@ -1,4 +1,4 @@
-package com.example.melow
+package com.example.melow.ui.main
 
 import android.content.Intent
 import android.os.Bundle
@@ -9,6 +9,12 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.example.melow.R
+import com.example.melow.ui.auth.LoginActivity
+import com.example.melow.ui.editor.SecondActivity
+import com.example.melow.ui.projects.ProjectsActivity
+import com.example.melow.ui.arrangement.ArrangementActivity
+import com.example.melow.ui.sounds.SoundLibraryActivity
 
 class MainActivity : AppCompatActivity() {
 
@@ -20,7 +26,7 @@ class MainActivity : AppCompatActivity() {
         val userId   = intent.getLongExtra("userId", -1L)
 
         val profileButton = findViewById<Button>(R.id.profileButton)
-        profileButton.text = if (username.isNotEmpty()) "◉  $username  ›" else "◉  Profile  ›"
+        profileButton.text = if (username.isNotEmpty()) "  $username  ›" else "  Profile  ›"
 
         profileButton.setOnClickListener {
             startActivity(Intent(this, ProfileActivity::class.java).putExtra("username", username))

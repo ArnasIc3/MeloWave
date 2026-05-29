@@ -1,4 +1,4 @@
-package com.example.melow
+package com.example.melow.ui.editor
 
 import android.app.Activity
 import android.content.Intent
@@ -26,6 +26,16 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.example.melow.R
+import com.example.melow.data.AchievementManager
+import com.example.melow.data.CustomSoundManager
+import com.example.melow.data.ProjectManager
+import com.example.melow.data.RowState
+import com.example.melow.data.SoundSettings
+import com.example.melow.data.SoundSettingsManager
+import com.example.melow.export.BeatExporter
+import com.example.melow.export.BeatExportWorker
+import com.example.melow.ui.sounds.SoundLibraryActivity
 
 class SecondActivity : AppCompatActivity() {
 

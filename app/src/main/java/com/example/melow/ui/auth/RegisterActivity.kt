@@ -1,4 +1,4 @@
-package com.example.melow
+package com.example.melow.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
@@ -12,6 +12,9 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.example.melow.R
+import com.example.melow.data.UserDbHelper
+import com.example.melow.ui.main.MainActivity
 
 class RegisterActivity : AppCompatActivity() {
 

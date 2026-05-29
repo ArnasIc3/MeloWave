@@ -1,4 +1,4 @@
-package com.example.melow
+package com.example.melow.ui.main
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -9,6 +9,9 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.melow.R
+import com.example.melow.data.Achievement
+import com.example.melow.data.AchievementManager
 
 class ProfileActivity : AppCompatActivity() {
 

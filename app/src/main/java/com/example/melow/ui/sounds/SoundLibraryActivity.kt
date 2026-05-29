@@ -1,4 +1,4 @@
-package com.example.melow
+package com.example.melow.ui.sounds
 
 import android.Manifest
 import android.app.Activity
@@ -20,6 +20,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.melow.R
+import com.example.melow.adapters.SoundAdapter
+import com.example.melow.adapters.SoundItem
+import com.example.melow.data.AchievementManager
+import com.example.melow.data.CustomSoundManager
+import com.example.melow.data.SoundSettings
+import com.example.melow.data.SoundSettingsManager
 import java.io.ByteArrayOutputStream
 
 class SoundLibraryActivity : AppCompatActivity() {

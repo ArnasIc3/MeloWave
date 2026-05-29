@@ -1,4 +1,4 @@
-package com.example.melow
+package com.example.melow.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
@@ -7,6 +7,7 @@ import android.os.Looper
 import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.example.melow.R
 
 class SplashActivity : AppCompatActivity() {
 

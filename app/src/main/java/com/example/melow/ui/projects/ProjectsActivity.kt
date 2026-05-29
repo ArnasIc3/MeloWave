@@ -1,4 +1,4 @@
-package com.example.melow
+package com.example.melow.ui.projects
 
 import android.content.Intent
 import android.os.Bundle
@@ -9,6 +9,11 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.melow.R
+import com.example.melow.adapters.ProjectAdapter
+import com.example.melow.data.ProjectInfo
+import com.example.melow.data.ProjectManager
+import com.example.melow.ui.editor.SecondActivity
 
 class ProjectsActivity : AppCompatActivity() {
 

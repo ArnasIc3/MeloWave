@@ -1,4 +1,4 @@
-package com.example.melow
+package com.example.melow.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
@@ -12,6 +12,9 @@ import android.view.inputmethod.EditorInfo
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.example.melow.R
+import com.example.melow.data.UserDbHelper
+import com.example.melow.ui.main.MainActivity
 import java.io.File
 
 class LoginActivity : AppCompatActivity() {
@@ -219,8 +222,6 @@ class LoginActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    // ── Debug viewer (long-press title) ───────────────────────────────────────
-
     private fun showDebugDialog() {
         val users = db.allUsers()
         val dbPath = db.dbFilePath(this)
@@ -272,7 +273,6 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    // ── Navigation ────────────────────────────────────────────────────────────
 
     private fun goToMain(username: String, userId: Long) {
         startActivity(Intent(this, MainActivity::class.java).apply {
@@ -283,7 +283,6 @@ class LoginActivity : AppCompatActivity() {
         overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun showError(tv: TextView, msg: String) {
         tv.text = msg
